@@ -60,7 +60,7 @@ EOF
       shift
       ;;
     *)
-      argFile="key"
+      argFile="$key"
       shift
       ;;
   esac
@@ -72,4 +72,22 @@ size must be larger than 0.
 EOF
 fi
 
+filetype=`file "$argFile" --mime-type`
+if [[ "$filetype" == *:*"text"* ]]; then
+  if [[ $argVerbose ]]; then
+cat<<EOF
+is text
+EOF
+  fi
+  (split "$argFile" -l "$argSize" -a 4)
+  #is a textfile
+else
+  if [ $argVerbose ]; then
+cat<<EOF
+is text
+EOF
+  fi
+  (split "$argFile" -b "$argSize"K -a 4)
+  #is not a textfile
+fi
 
