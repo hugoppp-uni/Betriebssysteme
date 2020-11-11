@@ -75,19 +75,17 @@ fi
 filetype=`file "$argFile" --mime-type`
 if [[ "$filetype" == *:*"text"* ]]; then
   if [[ $argVerbose ]]; then
-cat<<EOF
-is text
-EOF
+    echo "File is a textfile"
+    (split "$argFile" -dl "$argSize" -a 4 --verbose "$argFile")
+  else
+    (split "$argFile" -dl "$argSize" -a 4 "$argFile")
   fi
-  (split "$argFile" -l "$argSize" -a 4)
-  #is a textfile
 else
   if [ $argVerbose ]; then
-cat<<EOF
-is text
-EOF
+    echo "File is not a text file"
+    (split "$argFile" -db "$argSize"K -a 4 --verbose "$argFile")
+  else
+    (split "$argFile" -db "$argSize"K -a 4 "$argFile")
   fi
-  (split "$argFile" -b "$argSize"K -a 4)
-  #is not a textfile
 fi
 
