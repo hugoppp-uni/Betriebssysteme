@@ -28,10 +28,8 @@ EOF
 }
 
 if [ $# -le 0 ]; then
-cat <<EOF
-Specify arguments. Use --help for help.
-EOF
-exit 1
+  echo "Specify arguments. Use --help for help."
+  exit 1
 else
   argVerbose=false
   argSize=10
@@ -45,9 +43,7 @@ else
         exit 1 
         ;;
     --version)
-cat<<EOF
-1.0
-EOF
+    echo "1.0"
     exit 1
     ;;
     -v|--verbose)
@@ -67,9 +63,7 @@ EOF
   done
 fi
 if [ "$argSize" -le 0 ]; then
-cat <<EOF
-size must be larger than 0.
-EOF
+  echo "size must be larger than 0."
 fi
 
 filetype=`file "$argFile" --mime-type`
