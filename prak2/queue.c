@@ -1,41 +1,52 @@
-//
-// Created by hugo on 18.11.20.
-//
-
 #include <stdlib.h>
-#include <stdio.h>
 #include "queue.h"
 
-void enqueue(node **head, char val) {
-    node *newNode = malloc(sizeof(node));
-    if (!newNode) return;
+char enqueue(Queue *queue, char val) {
+    if (!queue || queue->size >= queue->capacity)
+        return -1;
 
+    struct Node *newNode = malloc(sizeof(struct Node));
+    if (!newNode)
+        return -1;
     newNode->val = val;
-    newNode->next = *head;
+    newNode->next = NULL;
 
-    *head = newNode;
+    struct NodeTail *nodeTail = queue->tail;
+    if (!queue->head) {
+        queue->head = newNode;
+    } else {
+        struct Node *lastNode = nodeTail->prev;
+        lastNode->next = newNode;
+    }
+    nodeTail->prev = newNode;
+    queue->size++;
+    return 0;
 }
 
+Queue *initializeQueue(int capacity) {
+    struct NodeTail *tail = calloc(1, sizeof(struct NodeTail));
+    Queue *queue = calloc(1, sizeof(Queue));
+    queue->size = 0;
+    queue->capacity = capacity;
+    queue->tail = tail;
+    queue->head = NULL;
+    return queue;
+}
 
-char dequeue(node **head) {
-    node *current, *prev = NULL;
-    char retval = -1;
+char dequeue(Queue *queue) {
+    if (!queue || !queue->head)
+        return -1;
 
-    if (*head == NULL) return -1;
-
-    current = *head;
-    while (current->next != NULL) {
-        prev = current;
-        current = current->next;
+    struct Node *elementToRemove = queue->head;
+    if (elementToRemove->next) {
+        queue->head = elementToRemove->next;
+    } else {
+        //elementToRemove is last element in queue
+        queue->head = NULL;
+        queue->tail->prev = NULL;
     }
-
-    retval = current->val;
-    free(current);
-
-    if (prev)
-        prev->next = NULL;
-    else
-        *head = NULL;
-
-    return retval;
+    queue->size--;
+    char returnVal = elementToRemove->val;
+    free(elementToRemove);
+    return returnVal;
 }
