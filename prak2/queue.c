@@ -1,13 +1,19 @@
 #include <stdlib.h>
 #include "queue.h"
+#include <semaphore.h>
 
 char enqueue(Queue *queue, char val) {
-    if (!queue || queue->size >= queue->capacity)
-        return -1;
+
+    sem_wait(&queue->semaphoreInverted);
+    pthread_mutex_lock(&queue->mutex);
 
     struct Node *newNode = malloc(sizeof(struct Node));
-    if (!newNode)
+    if (!newNode) {
+        sem_post(&queue->semaphoreInverted);
+        pthread_mutex_unlock(&queue->mutex);
         return -1;
+    }
+
     newNode->val = val;
     newNode->next = NULL;
 
@@ -19,23 +25,32 @@ char enqueue(Queue *queue, char val) {
         lastNode->next = newNode;
     }
     nodeTail->prev = newNode;
-    queue->size++;
+
+    pthread_mutex_unlock(&queue->mutex);
+    sem_post(&queue->semaphore);
     return 0;
 }
 
 Queue *initializeQueue(int capacity) {
-    struct NodeTail *tail = calloc(1, sizeof(struct NodeTail));
     Queue *queue = calloc(1, sizeof(Queue));
-    queue->size = 0;
-    queue->capacity = capacity;
+    struct NodeTail *tail = calloc(1, sizeof(struct NodeTail));
     queue->tail = tail;
     queue->head = NULL;
+    sem_init(&queue->semaphore, 0, 0);
+    sem_init(&queue->semaphoreInverted, 0, capacity);
+    pthread_mutex_init(&queue->mutex, NULL);
     return queue;
 }
 
 char dequeue(Queue *queue) {
-    if (!queue || !queue->head)
+    sem_wait(&queue->semaphore);
+    pthread_mutex_unlock(&queue->mutex);
+
+    if (!queue || !queue->head) {
+        sem_post(&queue->semaphore);
+        pthread_mutex_unlock(&queue->mutex);
         return -1;
+    }
 
     struct Node *elementToRemove = queue->head;
     if (elementToRemove->next) {
@@ -45,8 +60,17 @@ char dequeue(Queue *queue) {
         queue->head = NULL;
         queue->tail->prev = NULL;
     }
-    queue->size--;
     char returnVal = elementToRemove->val;
     free(elementToRemove);
+
+    pthread_mutex_unlock(&queue->mutex);
+    sem_post(&queue->semaphoreInverted);
+
     return returnVal;
+}
+
+int getQueueSize(Queue *queue) {
+    int res = 0;
+    sem_getvalue(&queue->semaphore, &res);
+    return res;
 }
