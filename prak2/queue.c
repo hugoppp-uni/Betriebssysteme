@@ -4,18 +4,16 @@
 
 char enqueue(Queue *queue, char val) {
 
-    sem_wait(&queue->semaphoreInverted);
-    pthread_mutex_lock(&queue->mutex);
-
     struct Node *newNode = malloc(sizeof(struct Node));
     if (!newNode) {
-        sem_post(&queue->semaphoreInverted);
-        pthread_mutex_unlock(&queue->mutex);
         return -1;
     }
 
     newNode->val = val;
     newNode->next = NULL;
+
+    sem_wait(&queue->semaphoreInverted);
+    pthread_mutex_lock(&queue->mutex);
 
     struct NodeTail *nodeTail = queue->tail;
     if (!queue->head) {
@@ -43,14 +41,13 @@ Queue *initializeQueue(int capacity) {
 }
 
 char dequeue(Queue *queue) {
-    sem_wait(&queue->semaphore);
-    pthread_mutex_unlock(&queue->mutex);
 
     if (!queue || !queue->head) {
-        sem_post(&queue->semaphore);
-        pthread_mutex_unlock(&queue->mutex);
         return -1;
     }
+
+    sem_wait(&queue->semaphore);
+    pthread_mutex_unlock(&queue->mutex);
 
     struct Node *elementToRemove = queue->head;
     if (elementToRemove->next) {
@@ -60,11 +57,12 @@ char dequeue(Queue *queue) {
         queue->head = NULL;
         queue->tail->prev = NULL;
     }
-    char returnVal = elementToRemove->val;
-    free(elementToRemove);
 
     pthread_mutex_unlock(&queue->mutex);
     sem_post(&queue->semaphoreInverted);
+
+    char returnVal = elementToRemove->val;
+    free(elementToRemove);
 
     return returnVal;
 }
