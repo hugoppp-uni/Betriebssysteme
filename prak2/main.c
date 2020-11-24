@@ -9,27 +9,26 @@
 #pragma ide diagnostic ignored "EndlessLoop"
 
 typedef struct ThreadsArg {
+    Queue *queue;
+    //once locked, these mutexes will switch of the respective thread
     pthread_mutex_t producer1Mtx;
     pthread_mutex_t producer2Mtx;
     pthread_mutex_t consumerMtx;
-    Queue *queue;
 } ThreadsArg;
 
-void *thread3(void *threadsArg);
+void *consumer(void *threadsArg);
 
-void *thread2(void *threadsArg);
+void *producer2(void *threadsArg);
 
-void *thread1(void *threadsArg);
+void *producer1(void *threadsArg);
 
-void *controllthread(void *threadsArg);
+void *controllThread(void *threadsArg);
 
 void printHelp();
 
 int main() {
-    Queue *myQueue = initializeQueue(10000);
+    Queue *myQueue = initializeQueue(10);
     ThreadsArg *thrArg = calloc(1, sizeof(ThreadsArg));
-
-    printHelp();
 
     pthread_mutex_t mtx1 = PTHREAD_MUTEX_INITIALIZER;
     pthread_mutex_t mtx2 = PTHREAD_MUTEX_INITIALIZER;
@@ -40,19 +39,15 @@ int main() {
     thrArg->producer2Mtx = mtx2;
     thrArg->consumerMtx = mtx3;
 
-    pthread_t threadId1;
-    pthread_t threadId2;
-    pthread_t threadId3;
-    pthread_t threadId4;
+    pthread_t threadId[4];
+    int t1 = pthread_create(&threadId[0], 0, producer1, thrArg);
+    int t2 = pthread_create(&threadId[1], 0, producer2, thrArg);
+    int t3 = pthread_create(&threadId[2], 0, consumer, thrArg);
+    int t4 = pthread_create(&threadId[3], 0, controllThread, thrArg);
 
-    int t1 = pthread_create(&threadId1, 0, thread1, thrArg);
-    int t2 = pthread_create(&threadId2, 0, thread2, thrArg);
-    int t3 = pthread_create(&threadId3, 0, thread3, thrArg);
-    int t4 = pthread_create(&threadId4, 0, controllthread, thrArg);
-    pthread_join(threadId1, 0);
-    pthread_join(threadId2, 0);
-    pthread_join(threadId3, 0);
-    pthread_join(threadId4, 0);
+    for (int i = 0; i < 4; i++) {
+        pthread_join(threadId[i], 0);
+    }
 
     while (1) {
         for (char i = 0; i < 10; ++i) {
@@ -65,8 +60,8 @@ int main() {
     }
 }
 
-void *thread1(void *arg) {
-    ThreadsArg *thrArg = (ThreadsArg*)arg;
+void *producer1(void *arg) {
+    ThreadsArg *thrArg = (ThreadsArg *) arg;
     Queue *myQueue = thrArg->queue;
     while (1) {
         for (char i = 'a'; i <= 'z'; ++i) {
@@ -80,8 +75,8 @@ void *thread1(void *arg) {
     }
 }
 
-void *thread2(void *arg) {
-    ThreadsArg *thrArg = (ThreadsArg*)arg;
+void *producer2(void *arg) {
+    ThreadsArg *thrArg = (ThreadsArg *) arg;
     Queue *myQueue = thrArg->queue;
     while (1) {
         for (char i = 'A'; i <= 'Z'; ++i) {
@@ -95,8 +90,8 @@ void *thread2(void *arg) {
     }
 }
 
-void *thread3(void *arg) {
-    ThreadsArg *thrArg = (ThreadsArg*)arg;
+void *consumer(void *arg) {
+    ThreadsArg *thrArg = (ThreadsArg *) arg;
     Queue *myQueue = thrArg->queue;
     while (1) {
         pthread_mutex_lock(&thrArg->consumerMtx);
@@ -108,8 +103,8 @@ void *thread3(void *arg) {
     }
 }
 
-void *controllthread(void *arg) {
-    ThreadsArg *thrArg = (ThreadsArg*)arg;
+void *controllThread(void *arg) {
+    ThreadsArg *thrArg = (ThreadsArg *) arg;
     char exit = 0;
     char pr1 = 0;
     char pr2 = 0;
