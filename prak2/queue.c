@@ -47,7 +47,7 @@ char dequeue(Queue *queue) {
     }
 
     sem_wait(&queue->semaphore);
-    pthread_mutex_unlock(&queue->mutex);
+    pthread_mutex_lock(&queue->mutex);
 
     struct Node *elementToRemove = queue->head;
     if (elementToRemove->next) {
