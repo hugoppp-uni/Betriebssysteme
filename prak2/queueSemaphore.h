@@ -1,5 +1,5 @@
-#ifndef PRAK2_QUEUE_H
-#define PRAK2_QUEUE_H
+#ifndef PRAK2_QUEUESEMAPHORE_H
+#define PRAK2_QUEUESEMAPHORE_H
 #include <pthread.h>
 #include <semaphore.h>
 
@@ -32,4 +32,4 @@ int getQueueSize(Queue *queue);
 
 char* queueToString(Queue *queue);
 
-#endif //PRAK2_QUEUE_H
+#endif //PRAK2_QUEUESEMAPHORE_H

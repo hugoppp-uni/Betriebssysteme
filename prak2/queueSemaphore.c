@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "queue.h"
+#include "queueSemaphore.h"
 #include <semaphore.h>
 
 char enqueue(Queue *queue, char val) {
