@@ -42,7 +42,7 @@ Queue *initializeQueue(int capacity) {
 
 char dequeue(Queue *queue) {
 
-    if (!queue || !queue->head) {
+    if (!queue /*|| !queue->head*/) {
         return -1;
     }
 
