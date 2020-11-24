@@ -3,7 +3,12 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <stdio.h>
+
+#ifdef USE_COND_VARS
+#include "queueCondVar.h"
+#else
 #include "queue.h"
+#endif
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "EndlessLoop"
