@@ -32,6 +32,9 @@ char enqueue(Queue *queue, char val) {
 Queue *initializeQueue(int capacity) {
     Queue *queue = calloc(1, sizeof(Queue));
     struct NodeTail *tail = calloc(1, sizeof(struct NodeTail));
+    if (!queue || !tail)
+        return 0;
+
     queue->tail = tail;
     queue->head = NULL;
     sem_init(&queue->semaphore, 0, 0);
