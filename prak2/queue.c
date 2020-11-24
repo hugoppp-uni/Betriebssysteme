@@ -72,3 +72,25 @@ int getQueueSize(Queue *queue) {
     sem_getvalue(&queue->semaphore, &res);
     return res;
 }
+
+char *queueToString(Queue *queue) {
+    if (!queue)
+        return 0;
+
+    int len;
+    pthread_mutex_lock(&queue->mutex);
+    sem_getvalue(&queue->semaphore, &len);
+    if (!len)
+        return 0;
+
+    struct Node *it = queue->head;
+    char *str = malloc(len + 1);
+
+    for (int i = 0; i < len; ++i) {
+        str[i] = it->val;
+        it = it->next;
+    }
+    pthread_mutex_unlock(&queue->mutex);
+    str[len] = '\0';
+    return str;
+}

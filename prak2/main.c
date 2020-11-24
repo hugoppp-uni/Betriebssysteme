@@ -67,8 +67,10 @@ void *producer1(void *arg) {
         for (char i = 'a'; i <= 'z'; ++i) {
             pthread_mutex_lock(&thrArg->producer1Mtx);
             enqueue(myQueue, i);
-            int size = getQueueSize(myQueue);
-            printf("%c   (%2d)   P1 \r\n", i, size);
+
+            char *s = queueToString(myQueue);
+            printf("     |%-10s| <- %c\n", s, i);
+
             pthread_mutex_unlock(&thrArg->producer1Mtx);
             sleep(1);
         }
@@ -82,8 +84,10 @@ void *producer2(void *arg) {
         for (char i = 'A'; i <= 'Z'; ++i) {
             pthread_mutex_lock(&thrArg->producer2Mtx);
             enqueue(myQueue, i);
-            int size = getQueueSize(myQueue);
-            printf("%c   (%2d)     P2 \r\n", i, size);
+
+            char *s = queueToString(myQueue);
+            printf("     |%-10s| <- %c\n", s, i);
+
             pthread_mutex_unlock(&thrArg->producer2Mtx);
             sleep(1);
         }
@@ -96,8 +100,10 @@ void *consumer(void *arg) {
     while (1) {
         pthread_mutex_lock(&thrArg->consumerMtx);
         char res = dequeue(myQueue);
-        int size = getQueueSize(myQueue);
-        printf("  %c (%2d) CS\r\n", res, size);
+
+        char *s = queueToString(myQueue);
+        printf("%c <- |%-10s| \n", res, s);
+
         pthread_mutex_unlock(&thrArg->consumerMtx);
         sleep(1);
     }

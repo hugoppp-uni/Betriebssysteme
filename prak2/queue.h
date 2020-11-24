@@ -30,4 +30,6 @@ char dequeue(Queue *queue);
 
 int getQueueSize(Queue *queue);
 
+char* queueToString(Queue *queue);
+
 #endif //PRAK2_QUEUE_H
