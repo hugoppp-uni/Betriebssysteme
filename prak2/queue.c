@@ -80,8 +80,10 @@ char *queueToString(Queue *queue) {
     int len;
     pthread_mutex_lock(&queue->mutex);
     sem_getvalue(&queue->semaphore, &len);
-    if (!len)
+    if (!len) {
+        pthread_mutex_unlock(&queue->mutex);
         return 0;
+    }
 
     struct Node *it = queue->head;
     char *str = malloc(len + 1);
