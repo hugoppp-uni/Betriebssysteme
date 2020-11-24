@@ -15,8 +15,6 @@ typedef struct ThreadsArg {
     Queue *queue;
 } ThreadsArg;
 
-ThreadsArg *thrArg = 0;
-
 void *thread3(void *threadsArg);
 
 void *thread2(void *threadsArg);
@@ -29,7 +27,7 @@ void printHelp();
 
 int main() {
     Queue *myQueue = initializeQueue(10000);
-    thrArg = calloc(1, sizeof(ThreadsArg));
+    ThreadsArg *thrArg = calloc(1, sizeof(ThreadsArg));
 
     printHelp();
 
@@ -47,10 +45,10 @@ int main() {
     pthread_t threadId3;
     pthread_t threadId4;
 
-    int t1 = pthread_create(&threadId1, 0, thread1, &thrArg);
-    int t2 = pthread_create(&threadId2, 0, thread2, &thrArg);
-    int t3 = pthread_create(&threadId3, 0, thread3, &thrArg);
-    int t4 = pthread_create(&threadId4, 0, controllthread, &thrArg);
+    int t1 = pthread_create(&threadId1, 0, thread1, thrArg);
+    int t2 = pthread_create(&threadId2, 0, thread2, thrArg);
+    int t3 = pthread_create(&threadId3, 0, thread3, thrArg);
+    int t4 = pthread_create(&threadId4, 0, controllthread, thrArg);
     pthread_join(threadId1, 0);
     pthread_join(threadId2, 0);
     pthread_join(threadId3, 0);
@@ -67,9 +65,8 @@ int main() {
     }
 }
 
-void printHelp();
-
-void *thread1(void *_) {
+void *thread1(void *arg) {
+    ThreadsArg *thrArg = (ThreadsArg*)arg;
     Queue *myQueue = thrArg->queue;
     while (1) {
         for (char i = 'a'; i <= 'z'; ++i) {
@@ -83,7 +80,8 @@ void *thread1(void *_) {
     }
 }
 
-void *thread2(void *_) {
+void *thread2(void *arg) {
+    ThreadsArg *thrArg = (ThreadsArg*)arg;
     Queue *myQueue = thrArg->queue;
     while (1) {
         for (char i = 'A'; i <= 'Z'; ++i) {
@@ -97,7 +95,8 @@ void *thread2(void *_) {
     }
 }
 
-void *thread3(void *_) {
+void *thread3(void *arg) {
+    ThreadsArg *thrArg = (ThreadsArg*)arg;
     Queue *myQueue = thrArg->queue;
     while (1) {
         pthread_mutex_lock(&thrArg->consumerMtx);
@@ -109,7 +108,8 @@ void *thread3(void *_) {
     }
 }
 
-void *controllthread(void *threadsArg) {
+void *controllthread(void *arg) {
+    ThreadsArg *thrArg = (ThreadsArg*)arg;
     char exit = 0;
     char pr1 = 0;
     char pr2 = 0;
