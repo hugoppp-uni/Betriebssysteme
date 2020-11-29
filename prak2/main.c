@@ -7,7 +7,9 @@
 #ifdef USE_COND_VARS
 #include "queueCondVar.h"
 #else
-#include "queue.h"
+
+#include "queueSemaphore.h"
+
 #endif
 
 #pragma clang diagnostic push
@@ -32,7 +34,7 @@ void *controllThread(void *threadsArg);
 void printHelp();
 
 int main() {
-    Queue *myQueue = initializeQueue(10);
+    Queue *myQueue = initializeQueue(10, 3);
     ThreadsArg *thrArg = calloc(1, sizeof(ThreadsArg));
 
     pthread_mutex_t mtx1 = PTHREAD_MUTEX_INITIALIZER;
@@ -52,16 +54,6 @@ int main() {
 
     for (int i = 0; i < 4; i++) {
         pthread_join(threadId[i], 0);
-    }
-
-    while (1) {
-        for (char i = 0; i < 10; ++i) {
-            enqueue(myQueue, 'a' + i);
-        }
-        for (char i = 0; i < 11; ++i) {
-            char c = dequeue(myQueue);
-            printf("%c\r\n", c);
-        }
     }
 }
 
@@ -116,13 +108,11 @@ void *consumer(void *arg) {
 
 void *controllThread(void *arg) {
     ThreadsArg *thrArg = (ThreadsArg *) arg;
-    char exit = 0;
     char pr1 = 0;
     char pr2 = 0;
     char cs = 0;
-    while (!exit) {
-        srand(time(0));
-        char input = rand() % 'z';
+    while (!thrArg->queue->exit) {
+        char input = (char) getchar();
         switch (input) {
             case '1':
                 if (pr1) {
@@ -162,7 +152,20 @@ void *controllThread(void *arg) {
                 break;
             case 'q':
             case 'Q':
-//                exit = 1;
+                if (pr1) {
+                    pthread_mutex_unlock(&thrArg->producer1Mtx);
+                }
+                if (pr2) {
+                    pthread_mutex_unlock(&thrArg->producer2Mtx);
+                }
+                if (cs) {
+                    pthread_mutex_unlock(&thrArg->consumerMtx);
+                }
+
+                pr1 = 1;
+                pr2 = 1;
+                cs = 1;
+                exitQueue(thrArg->queue);
                 break;
             case 'h':
                 printHelp();
@@ -171,7 +174,6 @@ void *controllThread(void *arg) {
             default:
                 break;
         }
-        sleep(1);
     }
     pthread_exit(0);
 }

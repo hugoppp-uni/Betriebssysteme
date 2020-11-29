@@ -12,8 +12,13 @@ char enqueue(Queue *queue, char val) {
     newNode->val = val;
     newNode->next = NULL;
 
+    pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, 0);
     sem_wait(&queue->semaphoreInverted);
     pthread_mutex_lock(&queue->mutex);
+    if (queue->exit) {
+        pthread_mutex_unlock(&queue->mutex);
+        pthread_exit(0);
+    }
 
     struct NodeTail *nodeTail = queue->tail;
     if (!queue->head) {
@@ -26,10 +31,19 @@ char enqueue(Queue *queue, char val) {
 
     pthread_mutex_unlock(&queue->mutex);
     sem_post(&queue->semaphore);
+    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, 0);
     return 0;
 }
 
-Queue *initializeQueue(int capacity) {
+void exitQueue(Queue *queue) {
+    queue->exit = 1;
+    for (int i = 0; i <= queue->maxThreads + 1; i++) {
+        sem_post(&queue->semaphore);
+        sem_post(&queue->semaphoreInverted);
+    }
+}
+
+Queue *initializeQueue(int capacity, int maxThreads) {
     Queue *queue = calloc(1, sizeof(Queue));
     struct NodeTail *tail = calloc(1, sizeof(struct NodeTail));
     if (!queue || !tail)
@@ -37,6 +51,7 @@ Queue *initializeQueue(int capacity) {
 
     queue->tail = tail;
     queue->head = NULL;
+    queue->maxThreads = maxThreads;
     sem_init(&queue->semaphore, 0, 0);
     sem_init(&queue->semaphoreInverted, 0, capacity);
     pthread_mutex_init(&queue->mutex, NULL);
@@ -49,8 +64,13 @@ char dequeue(Queue *queue) {
         return -1;
     }
 
+    pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, 0);
     sem_wait(&queue->semaphore);
     pthread_mutex_lock(&queue->mutex);
+    if (queue->exit) {
+        pthread_mutex_unlock(&queue->mutex);
+        pthread_exit(0);
+    }
 
     struct Node *elementToRemove = queue->head;
     if (elementToRemove->next) {
@@ -63,6 +83,7 @@ char dequeue(Queue *queue) {
 
     pthread_mutex_unlock(&queue->mutex);
     sem_post(&queue->semaphoreInverted);
+    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, 0);
 
     char returnVal = elementToRemove->val;
     free(elementToRemove);

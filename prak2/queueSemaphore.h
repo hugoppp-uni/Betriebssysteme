@@ -18,9 +18,11 @@ typedef struct Queue {
     sem_t semaphore;
     sem_t semaphoreInverted;
     pthread_mutex_t mutex;
+    char exit;
+    int maxThreads;
 } Queue;
 
-Queue *initializeQueue(int capacity);
+Queue *initializeQueue(int capacity, int maxThreads);
 
 //returns -1 if queue is full, else returns 0
 char enqueue(Queue *queue, char val);
@@ -31,5 +33,8 @@ char dequeue(Queue *queue);
 int getQueueSize(Queue *queue);
 
 char* queueToString(Queue *queue);
+
+void exitQueue(Queue *queue);
+
 
 #endif //PRAK2_QUEUESEMAPHORE_H

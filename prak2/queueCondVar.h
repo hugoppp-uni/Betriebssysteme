@@ -20,9 +20,11 @@ typedef struct Queue {
     pthread_cond_t cvEmpty;
     pthread_cond_t cvFull;
     pthread_mutex_t mutex;
+    char exit;
+    int maxThreads;
 } Queue;
 
-Queue *initializeQueue(int capacity);
+Queue *initializeQueue(int capacity, char maxThreads);
 
 //returns -1 if queue is full, else returns 0
 char enqueue(Queue *queue, char val);
@@ -33,5 +35,7 @@ char dequeue(Queue *queue);
 int getQueueSize(Queue *queue);
 
 char* queueToString(Queue *queue);
+
+void exitQueue(Queue *queue);
 
 #endif //PRAK2_QUEUECONDVAR_H

@@ -13,8 +13,12 @@ char enqueue(Queue *queue, char val) {
     newNode->next = NULL;
 
     pthread_mutex_lock(&queue->mutex);
-    while (queue->size >= queue->capacity) {
-        pthread_cond_wait(&queue->cvFull,&queue->mutex);
+    while (queue->size >= queue->capacity && !queue->exit) {
+        pthread_cond_wait(&queue->cvFull, &queue->mutex);
+    }
+    if (queue->exit) {
+        pthread_mutex_unlock(&queue->mutex);
+        pthread_exit(0);
     }
     queue->size++;
     pthread_cond_signal(&queue->cvEmpty);
@@ -32,7 +36,7 @@ char enqueue(Queue *queue, char val) {
     return 0;
 }
 
-Queue *initializeQueue(int capacity) {
+Queue *initializeQueue(int capacity, char maxThreads) {
     Queue *queue = calloc(1, sizeof(Queue));
     struct NodeTail *tail = calloc(1, sizeof(struct NodeTail));
     if (!queue || !tail)
@@ -42,8 +46,9 @@ Queue *initializeQueue(int capacity) {
     queue->head = NULL;
     queue->capacity = capacity;
     queue->size = 0;
-    pthread_cond_init(&queue->cvFull,NULL);
-    pthread_cond_init(&queue->cvEmpty,NULL);
+    queue->maxThreads = maxThreads;
+    pthread_cond_init(&queue->cvFull, NULL);
+    pthread_cond_init(&queue->cvEmpty, NULL);
     pthread_mutex_init(&queue->mutex, NULL);
     return queue;
 }
@@ -55,9 +60,14 @@ char dequeue(Queue *queue) {
     }
 
     pthread_mutex_lock(&queue->mutex);
-    while (queue->size <= 0) {
-        pthread_cond_wait(&queue->cvEmpty,&queue->mutex);
+    while (queue->size <= 0 && !queue->exit) {
+        pthread_cond_wait(&queue->cvEmpty, &queue->mutex);
     }
+    if (queue->exit) {
+        pthread_mutex_unlock(&queue->mutex);
+        pthread_exit(0);
+    }
+
     queue->size--;
     pthread_cond_signal(&queue->cvFull);
 
@@ -104,4 +114,10 @@ char *queueToString(Queue *queue) {
     pthread_mutex_unlock(&queue->mutex);
     str[queue->size] = '\0';
     return str;
+}
+
+void exitQueue(Queue *queue) {
+    queue->exit = 1;
+    pthread_cond_broadcast(&queue->cvFull);
+    pthread_cond_broadcast(&queue->cvEmpty);
 }
