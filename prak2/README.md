@@ -19,7 +19,7 @@ as the buffer will handle threading itself.
 
 
 ## FIFO
-- Implementation of buffer as queue or rolling array
+- Implementation of buffer as queue or circular buffer
 
 
 ### Variant 1 Semaphore
