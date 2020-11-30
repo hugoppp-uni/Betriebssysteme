@@ -9,11 +9,14 @@ Consumer: `mtx_c`
 
 The mutexes are passed as a parameter to the threads.
 Once the control thread locks the corresponding mutex,
-the consumer  producer thread will lock and only continue once the mutex is unlocked by the control thread.
+the consumer / producer thread will lock and only continue once the mutex is unlocked by the control thread.
+
+Quitting the threads is accomplished through calling a `quitQueue()` function,
+ which will wake all threads and exit them using `pthread_exit()`.
 
 
 ## Producer and Consumer Threads
-Checks the corresponding mutex `mtx_p1`, `mtx_p2` or `mtx_c` before inserting / deleteing an element.
+Each thread will check the corresponding mutex `mtx_p1`, `mtx_p2` or `mtx_c` before inserting / deleteing an element.
 The thread can call the functions to add or remove an element without checking for other threads,
 as the buffer will handle threading itself.
 
