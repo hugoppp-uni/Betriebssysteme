@@ -5,7 +5,9 @@
 #include <stdio.h>
 
 #ifdef USE_COND_VARS
+
 #include "queueCondVar.h"
+
 #else
 
 #include "queueSemaphore.h"
@@ -15,7 +17,7 @@
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "EndlessLoop"
 
-#define TrSafeConsole(s) pthread_mutex_lock(&thrArg->consoleMtx); \
+#define THR_SAFE_CONSOLE(s) pthread_mutex_lock(&thrArg->consoleMtx); \
                     s;                                            \
                     pthread_mutex_unlock(&thrArg->consoleMtx);
 
@@ -42,14 +44,12 @@ int main() {
     Queue *myQueue = initializeQueue(10, 3);
     ThreadsArg *thrArg = calloc(1, sizeof(ThreadsArg));
 
-    pthread_mutex_t mtx1 = PTHREAD_MUTEX_INITIALIZER;
-    pthread_mutex_t mtx2 = PTHREAD_MUTEX_INITIALIZER;
-    pthread_mutex_t mtx3 = PTHREAD_MUTEX_INITIALIZER;
+    pthread_mutex_init(&thrArg->producer1Mtx, NULL);
+    pthread_mutex_init(&thrArg->producer2Mtx, NULL);
+    pthread_mutex_init(&thrArg->consumerMtx, NULL);
+    pthread_mutex_init(&thrArg->consoleMtx, NULL);
 
     thrArg->queue = myQueue;
-    thrArg->producer1Mtx = mtx1;
-    thrArg->producer2Mtx = mtx2;
-    thrArg->consumerMtx = mtx3;
 
     pthread_t threadId[4];
     int t1 = pthread_create(&threadId[0], 0, producer1, thrArg);
@@ -89,7 +89,7 @@ void *producer2(void *arg) {
             enqueue(myQueue, i);
 
             char *s = queueToString(myQueue);
-            TrSafeConsole(printf("     |%-10s| <- %c\n", s, i));
+            THR_SAFE_CONSOLE(printf("     |%-10s| <- %c\n", s, i));
 
             pthread_mutex_unlock(&thrArg->producer2Mtx);
             sleep(1);
@@ -101,11 +101,11 @@ void *consumer(void *arg) {
     ThreadsArg *thrArg = (ThreadsArg *) arg;
     Queue *myQueue = thrArg->queue;
     while (1) {
-        TrSafeConsole(pthread_mutex_lock(&thrArg->consumerMtx));
+        pthread_mutex_lock(&thrArg->consumerMtx);
         char res = dequeue(myQueue);
 
         char *s = queueToString(myQueue);
-        TrSafeConsole(printf("%c <- |%-10s| \n", res, s));
+        THR_SAFE_CONSOLE(printf("%c <- |%-10s| \n", res, s));
 
         pthread_mutex_unlock(&thrArg->consumerMtx);
         sleep(1);
@@ -114,68 +114,61 @@ void *consumer(void *arg) {
 
 void *controllThread(void *arg) {
     ThreadsArg *thrArg = (ThreadsArg *) arg;
-    char pr1 = 0;
-    char pr2 = 0;
-    char cs = 0;
+    char pr1On = 1;
+    char pr2On = 1;
+    char cOn = 1;
     while (!thrArg->queue->exit) {
         char input = (char) getchar();
         switch (input) {
             case '1':
-                if (pr1) {
-                    pthread_mutex_unlock(&thrArg->producer1Mtx);
-                    TrSafeConsole(printf(" -- on: "));
-                } else {
+                if (pr1On) {
                     pthread_mutex_lock(&thrArg->producer1Mtx);
-                    TrSafeConsole(printf(" -- off: "));
+                    THR_SAFE_CONSOLE(printf(" -- off: producer 1 --\n"));
+                } else {
+                    pthread_mutex_unlock(&thrArg->producer1Mtx);
+                    THR_SAFE_CONSOLE(printf(" -- on: producer 1 --\n"));
                 }
-                pr1 = !pr1;
-                TrSafeConsole(printf("producer 1\n"));
+                pr1On = !pr1On;
                 break;
             case '2':
-                if (pr2) {
-                    pthread_mutex_unlock(&thrArg->producer2Mtx);
-                    TrSafeConsole(printf(" -- on: "));
-                } else {
+                if (pr2On) {
                     pthread_mutex_lock(&thrArg->producer2Mtx);
-                    TrSafeConsole(printf(" -- off: "));
+                    THR_SAFE_CONSOLE(printf(" -- off: producer 2 --\n"));
+                } else {
+                    pthread_mutex_unlock(&thrArg->producer2Mtx);
+                    THR_SAFE_CONSOLE(printf(" -- on: producer 2 --\n"));
                 }
-                pr2 = !pr2;
-                TrSafeConsole(printf("producer 2\n"));
-                //start/stop prod2
+                pr2On = !pr2On;
                 break;
             case 'c':
             case 'C':
-                if (cs) {
-                    pthread_mutex_unlock(&thrArg->consumerMtx);
-                    TrSafeConsole(printf(" -- on: "));
-                } else {
+                if (cOn) {
                     pthread_mutex_lock(&thrArg->consumerMtx);
-                    TrSafeConsole(printf(" -- off: "));
+                    THR_SAFE_CONSOLE(printf(" -- off: consumer --\n"));
+                } else {
+                    pthread_mutex_unlock(&thrArg->consumerMtx);
+                    THR_SAFE_CONSOLE(printf(" -- on: consumer --\n"));
                 }
-                cs = !cs;
-                TrSafeConsole(printf("consumer\n"));
-                //start/stop cons
+                cOn = !cOn;
                 break;
             case 'q':
             case 'Q':
-                if (pr1) {
+                if (!pr1On) {
                     pthread_mutex_unlock(&thrArg->producer1Mtx);
                 }
-                if (pr2) {
+                if (!pr2On) {
                     pthread_mutex_unlock(&thrArg->producer2Mtx);
                 }
-                if (cs) {
+                if (!cOn) {
                     pthread_mutex_unlock(&thrArg->consumerMtx);
                 }
-
-                pr1 = 1;
-                pr2 = 1;
-                cs = 1;
+                pr1On = 1;
+                pr2On = 1;
+                cOn = 1;
                 exitQueue(thrArg->queue);
                 break;
             case 'h':
-                TrSafeConsole(printHelp());
-                //help
+            THR_SAFE_CONSOLE(printHelp());
                 break;
             default:
                 break;
