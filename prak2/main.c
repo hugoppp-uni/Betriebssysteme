@@ -3,6 +3,8 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <errno.h>
+
 
 #ifdef USE_COND_VARS
 
@@ -29,6 +31,12 @@ typedef struct ThreadsArg {
     pthread_mutex_t consumerMtx;
     pthread_mutex_t consoleMtx;
 } ThreadsArg;
+
+typedef struct ConsProdArg {
+    Queue *queue;
+    pthread_mutex_t mutex;
+    char isUppercase;
+} ConsProdArg;
 
 void *consumer(void *threadsArg);
 
@@ -59,6 +67,26 @@ int main() {
 
     for (int i = 0; i < 4; i++) {
         pthread_join(threadId[i], 0);
+    }
+
+
+#define EXIT_VALS_SIZE 7
+    int exitVals[EXIT_VALS_SIZE];
+    exitVals[0] = pthread_mutex_destroy(&myQueue->mutex);
+    exitVals[1] = pthread_mutex_destroy(&thrArg->producer1Mtx);
+    exitVals[2] = pthread_mutex_destroy(&thrArg->producer2Mtx);
+    exitVals[3] = pthread_mutex_destroy(&thrArg->consumerMtx);
+    exitVals[4] = pthread_mutex_destroy(&thrArg->consoleMtx);
+#ifdef USE_COND_VARS
+    exitVals[5] = pthread_cond_destroy(&myQueue->cvEmpty);
+    exitVals[6] = pthread_cond_destroy(&myQueue->cvEmpty);
+#else
+    exitVals[5] = sem_destroy(&myQueue->semaphore);
+    exitVals[6] = sem_destroy(&myQueue->semaphoreInverted);
+#endif
+    printf("mutex and sem / condVar val:\n");
+    for (int i = 0; i < EXIT_VALS_SIZE; i++) {
+        printf("index %d: %d\n", i, exitVals[i]);
     }
 }
 
@@ -153,18 +181,9 @@ void *controllThread(void *arg) {
                 break;
             case 'q':
             case 'Q':
-                if (!pr1On) {
-                    pthread_mutex_unlock(&thrArg->producer1Mtx);
-                }
-                if (!pr2On) {
-                    pthread_mutex_unlock(&thrArg->producer2Mtx);
-                }
-                if (!cOn) {
-                    pthread_mutex_unlock(&thrArg->consumerMtx);
-                }
-                pr1On = 1;
-                pr2On = 1;
-                cOn = 1;
+                pthread_mutex_unlock(&thrArg->producer1Mtx);
+                pthread_mutex_unlock(&thrArg->producer2Mtx);
+                pthread_mutex_unlock(&thrArg->consumerMtx);
                 exitQueue(thrArg->queue);
                 break;
             case 'h':
