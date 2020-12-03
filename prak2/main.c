@@ -44,6 +44,12 @@ void *controllThread(void *threadsArg);
 void printHelp();
 
 int main() {
+#ifdef USE_COND_VARS
+    printf("using condvars\n");
+#else
+    printf("using semaphore\n");
+#endif
+
     Queue *myQueue = initializeQueue(10, 3);
     ThreadsArg *thrArg = calloc(1, sizeof(ThreadsArg));
     pthread_mutex_init(&consoleMtx, NULL);
@@ -76,9 +82,6 @@ int main() {
     for (int i = 0; i < THREAD_COUNT; ++i) {
         printf("Thread with id %lu, returned error code %d\n", threadId[i], thrErrs[i]);
     }
-//    int t1 = pthread_create(&threadId[0], 0, producer, &prod[0]);
-//    int t2 = pthread_create(&threadId[1], 0, producer, &prod[1]);
-//    printf("threads error codes: %d, %d, %d, %d", t[0], t2, t3, t4);
 
     for (int i = 0; i < THREAD_COUNT; ++i) {
         pthread_join(threadId[i], 0);
@@ -118,16 +121,15 @@ void *producer(void *arg) {
         for (char i = startAt; i <= endAt; ++i) {
 
             pthread_mutex_lock(&thrArg->controllMutex);
+            pthread_mutex_unlock(&thrArg->controllMutex);
             enqueue(myQueue, i);
             if (thrArg->queue->exit) {
-                pthread_mutex_unlock(&thrArg->controllMutex);
                 pthread_exit(0);
             }
 
             char *s = queueToString(myQueue);
             printf("     |%-10s| <- %c\n", s, i);
 
-            pthread_mutex_unlock(&thrArg->controllMutex);
             sleep(1);
         }
     }
@@ -139,16 +141,15 @@ void *consumer(void *arg) {
     Queue *myQueue = thrArg->queue;
     while (1) {
         pthread_mutex_lock(&thrArg->controllMutex);
+        pthread_mutex_unlock(&thrArg->controllMutex);
         char res = dequeue(myQueue);
         if (thrArg->queue->exit) {
-            pthread_mutex_unlock(&thrArg->controllMutex);
             pthread_exit(0);
         }
 
         char *s = queueToString(myQueue);
         printf("%c <- |%-10s| \n", res, s);
 
-        pthread_mutex_unlock(&thrArg->controllMutex);
         sleep(1);
     }
 }
@@ -193,16 +194,18 @@ void *controllThread(void *arg) {
                 cOn = !cOn;
                 break;
             case 'q':
-            case 'Q':
+            case 'Q': {
+                int i1, i2, i3;
                 if (!pr1On)
-                    pthread_mutex_unlock(thrArg->producers[0]);
+                    i1 = pthread_mutex_unlock(thrArg->producers[0]);
                 if (!pr2On)
-                    pthread_mutex_unlock(thrArg->producers[1]);
+                    i2 = pthread_mutex_unlock(thrArg->producers[1]);
                 if (!cOn)
-                    pthread_mutex_unlock(thrArg->consumerMtx);
+                    i3 = pthread_mutex_unlock(thrArg->consumerMtx);
+                printf("Exiting. Errors: %d,%d,%d\n", i1, i2, i3);
                 exitQueue(thrArg->queue);
-
                 break;
+            }
             case 'h':
                 printHelp();
                 break;
