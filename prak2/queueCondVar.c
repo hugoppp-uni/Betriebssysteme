@@ -18,7 +18,7 @@ char enqueue(Queue *queue, char val) {
     }
     if (queue->exit) {
         pthread_mutex_unlock(&queue->mutex);
-        pthread_exit(0);
+        return -1;
     }
     queue->size++;
     pthread_cond_signal(&queue->cvEmpty);
@@ -65,7 +65,7 @@ char dequeue(Queue *queue) {
     }
     if (queue->exit) {
         pthread_mutex_unlock(&queue->mutex);
-        pthread_exit(0);
+        return -1;
     }
 
     queue->size--;

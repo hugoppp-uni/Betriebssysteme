@@ -1,22 +1,22 @@
 # Entwurf
 
 ## Control Thread
-Controls producers and consumers by using a mutex for each thread:
+Controls producers and consumers by using a controllMutex for each thread:
 
 Producer 1: `mtx_p1`
 Producer 2:`mtx_p2`
 Consumer: `mtx_c`
 
 The mutexes are passed as a parameter to the threads.
-Once the control thread locks the corresponding mutex,
-the consumer / producer thread will lock and only continue once the mutex is unlocked by the control thread.
+Once the control thread locks the corresponding controllMutex,
+the consumer / producer thread will lock and only continue once the controllMutex is unlocked by the control thread.
 
 Quitting the threads is accomplished through calling a `quitQueue()` function,
  which will wake all threads and exit them using `pthread_exit()`.
 
 
 ## Producer and Consumer Threads
-Each thread will check the corresponding mutex `mtx_p1`, `mtx_p2` or `mtx_c` before inserting / deleteing an element.
+Each thread will check the corresponding controllMutex `mtx_p1`, `mtx_p2` or `mtx_c` before inserting / deleteing an element.
 The thread can call the functions to add or remove an element without checking for other threads,
 as the buffer will handle threading itself.
 
@@ -26,8 +26,8 @@ as the buffer will handle threading itself.
 
 
 ### Variant 1 Semaphore
-The buffer  contains a mutex and two semaphores:
-- `mtx` the mutex
+The buffer  contains a controllMutex and two semaphores:
+- `mtx` the controllMutex
 - `sem_used` semaphore with val = count of elements in buffer structure
 - `sem_free` semaphore with val = remaining capacity in buffer structure
 
@@ -57,10 +57,10 @@ The buffer  contains a mutex and two semaphores:
 
 
 ### Variant 2 CondVars
-The buffer contains two integer values, a mutex and two semaphores:
+The buffer contains two integer values, a controllMutex and two semaphores:
 - `int capacity` the maximum capacity of the buffer
 - `int size` the current size of the buffer
-- `mtx` the mutex
+- `mtx` the controllMutex
 - `cv_isEmpty` condition variable indicating buffer is empty
 - `cv_isFull` condition variable indicating buffer is full
 

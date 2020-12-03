@@ -19,24 +19,23 @@
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "EndlessLoop"
 
+#define PROD_COUNT 2
 
 typedef struct ThreadsArg {
     Queue *queue;
     //once locked, these mutexes will switch of the respective thread
-    pthread_mutex_t producer1Mtx;
-    pthread_mutex_t producer2Mtx;
-    pthread_mutex_t consumerMtx;
+    pthread_mutex_t *producers[PROD_COUNT];
+    pthread_mutex_t *consumerMtx;
 } ThreadsArg;
 
 pthread_mutex_t consoleMtx;
 typedef struct ConsProdArg {
     Queue *queue;
-    pthread_mutex_t mutex;
+    pthread_mutex_t controllMutex;
     char isUppercase;
 } ConsProdArg;
 
 void *consumer(void *threadsArg);
-
 
 void *producer(void *threadsArg);
 
@@ -47,44 +46,52 @@ void printHelp();
 int main() {
     Queue *myQueue = initializeQueue(10, 3);
     ThreadsArg *thrArg = calloc(1, sizeof(ThreadsArg));
-
     pthread_mutex_init(&consoleMtx, NULL);
-
     thrArg->queue = myQueue;
 
-    ConsProdArg cons;
-    cons.queue = myQueue;
-    cons.isUppercase = 0;
-    pthread_mutex_init(&cons.mutex, NULL);
+    ConsProdArg cons = {.queue = myQueue, .isUppercase = 0};
+    pthread_mutex_init(&cons.controllMutex, NULL);
 
-    ConsProdArg prod1;
-    prod1.queue = myQueue;
-    prod1.isUppercase = 0;
-    pthread_mutex_init(&prod1.mutex, NULL);
+    ConsProdArg prod[PROD_COUNT] = {
+        {.queue = myQueue, .isUppercase = 1},
+        {.queue = myQueue, .isUppercase = 0},
+    };
+    for (int i = 0; i < PROD_COUNT; ++i) {
+        pthread_mutex_init(&prod[i].controllMutex, NULL);
+        thrArg->producers[i] = &prod[i].controllMutex;
+    }
+    thrArg->consumerMtx = &cons.controllMutex;
 
-    ConsProdArg prod2;
-    prod2.queue = myQueue;
-    prod2.isUppercase = 1;
-    pthread_mutex_init(&prod2.mutex, NULL);
+#define THREAD_COUNT 4
+    pthread_t threadId[THREAD_COUNT] = {-1};
+    int thrErrs[THREAD_COUNT] = {-1};
 
-    pthread_t threadId[4];
-    int t1 = pthread_create(&threadId[0], 0, producer, &prod1);
-    int t2 = pthread_create(&threadId[1], 0, producer, &prod2);
-    int t3 = pthread_create(&threadId[2], 0, consumer, thrArg);
-    int t4 = pthread_create(&threadId[3], 0, controllThread, thrArg);
+    thrErrs[0] = pthread_create(&threadId[0], 0, consumer, &cons);
+    thrErrs[1] = pthread_create(&threadId[1], 0, controllThread, thrArg);
+    int prodOfset = THREAD_COUNT - PROD_COUNT;
+    for (int i = 0; i < PROD_COUNT; ++i) {
+        thrErrs[prodOfset] = pthread_create(&threadId[i + prodOfset], 0, producer, &prod[i]);
+    }
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < THREAD_COUNT; ++i) {
+        printf("Thread with id %lu, returned error code %d\n", threadId[i], thrErrs[i]);
+    }
+//    int t1 = pthread_create(&threadId[0], 0, producer, &prod[0]);
+//    int t2 = pthread_create(&threadId[1], 0, producer, &prod[1]);
+//    printf("threads error codes: %d, %d, %d, %d", t[0], t2, t3, t4);
+
+    for (int i = 0; i < THREAD_COUNT; ++i) {
         pthread_join(threadId[i], 0);
     }
 
 
 #define EXIT_VALS_SIZE 7
     int exitVals[EXIT_VALS_SIZE];
-    exitVals[0] = pthread_mutex_destroy(&myQueue->mutex);
-    exitVals[1] = pthread_mutex_destroy(&thrArg->producer1Mtx);
-    exitVals[2] = pthread_mutex_destroy(&thrArg->producer2Mtx);
-    exitVals[3] = pthread_mutex_destroy(&thrArg->consumerMtx);
-    exitVals[4] = pthread_mutex_destroy(&consoleMtx);
+    exitVals[0] = pthread_mutex_destroy(thrArg->producers[0]);
+    exitVals[1] = pthread_mutex_destroy(thrArg->producers[1]);
+    exitVals[2] = pthread_mutex_destroy(thrArg->consumerMtx);
+    exitVals[3] = pthread_mutex_destroy(&consoleMtx);
+    exitVals[4] = pthread_mutex_destroy(&myQueue->mutex);
 #ifdef USE_COND_VARS
     exitVals[5] = pthread_cond_destroy(&myQueue->cvEmpty);
     exitVals[6] = pthread_cond_destroy(&myQueue->cvEmpty);
@@ -92,8 +99,11 @@ int main() {
     exitVals[5] = sem_destroy(&myQueue->semaphore);
     exitVals[6] = sem_destroy(&myQueue->semaphoreInverted);
 #endif
-    printf("mutex and sem / condVar val:\n");
-    for (int i = 0; i < EXIT_VALS_SIZE; i++) {
+    printf("\nmutex and sem / condVar return values:\n");
+    printf("-- Controll Thread: --\n");
+    for (int i = 0; i < EXIT_VALS_SIZE; ++i) {
+        if (i == 4)
+            printf("-- Queue Threads: --\n");
         printf("index %d: %d\n", i, exitVals[i]);
     }
 }
@@ -106,13 +116,18 @@ void *producer(void *arg) {
         char startAt = thrArg->isUppercase ? 'A' : 'a';
         char endAt = thrArg->isUppercase ? 'Z' : 'z';
         for (char i = startAt; i <= endAt; ++i) {
-            pthread_mutex_lock(&thrArg->mutex);
+
+            pthread_mutex_lock(&thrArg->controllMutex);
             enqueue(myQueue, i);
+            if (thrArg->queue->exit) {
+                pthread_mutex_unlock(&thrArg->controllMutex);
+                pthread_exit(0);
+            }
 
             char *s = queueToString(myQueue);
             printf("     |%-10s| <- %c\n", s, i);
 
-            pthread_mutex_unlock(&thrArg->mutex);
+            pthread_mutex_unlock(&thrArg->controllMutex);
             sleep(1);
         }
     }
@@ -123,13 +138,17 @@ void *consumer(void *arg) {
     ConsProdArg *thrArg = (ConsProdArg *) arg;
     Queue *myQueue = thrArg->queue;
     while (1) {
-        pthread_mutex_lock(&thrArg->mutex);
+        pthread_mutex_lock(&thrArg->controllMutex);
         char res = dequeue(myQueue);
+        if (thrArg->queue->exit) {
+            pthread_mutex_unlock(&thrArg->controllMutex);
+            pthread_exit(0);
+        }
 
         char *s = queueToString(myQueue);
         printf("%c <- |%-10s| \n", res, s);
 
-        pthread_mutex_unlock(&thrArg->mutex);
+        pthread_mutex_unlock(&thrArg->controllMutex);
         sleep(1);
     }
 }
@@ -144,20 +163,20 @@ void *controllThread(void *arg) {
         switch (input) {
             case '1':
                 if (pr1On) {
-                    pthread_mutex_lock(&thrArg->producer1Mtx);
+                    pthread_mutex_lock(thrArg->producers[0]);
                     printf(" -- off: producer 1 --\n");
                 } else {
-                    pthread_mutex_unlock(&thrArg->producer1Mtx);
+                    pthread_mutex_unlock(thrArg->producers[0]);
                     printf(" -- on: producer 1 --\n");
                 }
                 pr1On = !pr1On;
                 break;
             case '2':
                 if (pr2On) {
-                    pthread_mutex_lock(&thrArg->producer2Mtx);
+                    pthread_mutex_lock(thrArg->producers[1]);
                     printf(" -- off: producer 2 --\n");
                 } else {
-                    pthread_mutex_unlock(&thrArg->producer2Mtx);
+                    pthread_mutex_unlock(thrArg->producers[1]);
                     printf(" -- on: producer 2 --\n");
                 }
                 pr2On = !pr2On;
@@ -165,23 +184,27 @@ void *controllThread(void *arg) {
             case 'c':
             case 'C':
                 if (cOn) {
-                    pthread_mutex_lock(&thrArg->consumerMtx);
+                    pthread_mutex_lock(thrArg->consumerMtx);
                     printf(" -- off: consumer --\n");
                 } else {
-                    pthread_mutex_unlock(&thrArg->consumerMtx);
+                    pthread_mutex_unlock(thrArg->consumerMtx);
                     printf(" -- on: consumer --\n");
                 }
                 cOn = !cOn;
                 break;
             case 'q':
             case 'Q':
-                pthread_mutex_unlock(&thrArg->producer1Mtx);
-                pthread_mutex_unlock(&thrArg->producer2Mtx);
-                pthread_mutex_unlock(&thrArg->consumerMtx);
+                if (!pr1On)
+                    pthread_mutex_unlock(thrArg->producers[0]);
+                if (!pr2On)
+                    pthread_mutex_unlock(thrArg->producers[1]);
+                if (!cOn)
+                    pthread_mutex_unlock(thrArg->consumerMtx);
                 exitQueue(thrArg->queue);
+
                 break;
             case 'h':
-            printHelp();
+                printHelp();
                 break;
             default:
                 break;

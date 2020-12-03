@@ -17,7 +17,7 @@ char enqueue(Queue *queue, char val) {
     pthread_mutex_lock(&queue->mutex);
     if (queue->exit) {
         pthread_mutex_unlock(&queue->mutex);
-        pthread_exit(0);
+        return -1;
     }
 
     struct NodeTail *nodeTail = queue->tail;
@@ -69,7 +69,7 @@ char dequeue(Queue *queue) {
     pthread_mutex_lock(&queue->mutex);
     if (queue->exit) {
         pthread_mutex_unlock(&queue->mutex);
-        pthread_exit(0);
+        return -1;
     }
 
     struct Node *elementToRemove = queue->head;
@@ -103,6 +103,11 @@ char *queueToString(Queue *queue) {
 
     int len;
     pthread_mutex_lock(&queue->mutex);
+    if (queue->exit){
+        pthread_mutex_unlock(&queue->mutex);
+        return "";
+    }
+
     sem_getvalue(&queue->semaphore, &len);
     if (!len) {
         pthread_mutex_unlock(&queue->mutex);
