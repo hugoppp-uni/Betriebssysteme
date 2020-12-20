@@ -105,7 +105,7 @@ char *queueToString(Queue *queue) {
     pthread_mutex_lock(&queue->mutex);
     if (queue->exit){
         pthread_mutex_unlock(&queue->mutex);
-        return "";
+        return 0;
     }
 
     sem_getvalue(&queue->semaphore, &len);

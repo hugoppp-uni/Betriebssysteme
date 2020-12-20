@@ -109,6 +109,11 @@ int main() {
             printf("-- Queue Threads: --\n");
         printf("index %d: %d\n", i, exitVals[i]);
     }
+    free(thrArg);
+    // there should be a method in queue.h that frees all stack memory that the queue uses, but ¯\_(ツ)_/¯
+    if (myQueue->tail)
+        free(myQueue->tail);
+    free(myQueue);
 }
 
 
@@ -129,6 +134,8 @@ void *producer(void *arg) {
 
             char *s = queueToString(myQueue);
             printf("     |%-10s| <- %c\n", s, i);
+            if (s)
+                free(s);
 
             sleep(1);
         }
@@ -149,6 +156,8 @@ void *consumer(void *arg) {
 
         char *s = queueToString(myQueue);
         printf("%c <- |%-10s| \n", res, s);
+        if (s)
+            free(s);
 
         sleep(1);
     }
@@ -195,7 +204,8 @@ void *controllThread(void *arg) {
                 break;
             case 'q':
             case 'Q': {
-                int i1, i2, i3;
+                int i1 = 0, i2 = 0, i3 = 0;
+                thrArg->queue->exit = 1;
                 if (!pr1On)
                     i1 = pthread_mutex_unlock(thrArg->producers[0]);
                 if (!pr2On)
