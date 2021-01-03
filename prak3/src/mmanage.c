@@ -387,6 +387,7 @@ void vmem_init(void) {
 }
 
 int find_unused_frame() {
+
     static int frame = -1;
 
     if (frame < VMEM_NFRAMES - 1) {
@@ -395,20 +396,23 @@ int find_unused_frame() {
     }
 
     return VOID_IDX;
+
+
 }
 
 void allocate_page(const int req_page, const int g_count) {
 
     /* Log action */
-    le.req_pageno = req_page;
-    le.replaced_page = removedPage;
-    le.alloc_frame = frame;
-    le.g_count = g_count; 
-    le.pf_count = pf_count;
-    logger(le);
+//    le.req_pageno = req_page;
+//    le.replaced_page = removedPage;
+//    le.alloc_frame = frame;
+//    le.g_count = g_count;
+//    le.pf_count = pf_count;
+//    logger(le);
 }
 
 void fetchPage(int page, int frame){
+    
     int * pframe = &vmem->mainMemory[frame * VMEM_PAGESIZE];
     fetch_page_from_pagefile (page, pframe);
 
@@ -417,24 +421,31 @@ void fetchPage(int page, int frame){
 }
 
 void removePage(int page) {
+    
     if( (vmem->pt[page].flags & PTF_DIRTY) == PTF_DIRTY){
         store_page_to_pagefile (page, &vmem->mainMemory[vmem->pt[page].frame * VMEM_PAGESIZE]);
     }
 
     vmem->pt[page].flags = 0;
     vmem->pt[page].frame = VOID_IDX;
+    return;
 }
 
+
 void find_remove_fifo(int page, int * removedPage, int *frame){
+    return;
 }
 
 static void find_remove_aging(int page, int * removedPage, int *frame){
+    return;
 }
 
 static void update_age_reset_ref(void) {
-} 
+    return;
+}
 
 static void find_remove_clock(int page, int * removedPage, int *frame){
+    return;
 }
 
 // EOF
