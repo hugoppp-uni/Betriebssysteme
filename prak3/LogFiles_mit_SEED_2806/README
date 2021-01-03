@@ -1,0 +1,44 @@
+Log Files zu Aufgabe 3 der Veranstaltung BS in der TI SoSe 2020
+===============================================================
+
+- Beachten Sie, dass die Log Files auf der LINUX VM mit SEED = 2806
+  erzeugt wurden.
+  Mittlerweile sollte die Aufgabe auf OS-X und Linux die selben
+  Ergebnisse liefern, da ein sehr einfacher Zufallszahlengenerator
+  in den Code integriert wurde.
+
+- Die LogFiles für die Seitenersetzungalgorithmen FIFO und CLOCK müssen
+  mit denen Ihrer Lösung übereinstimmen. 
+  Bitte überprüfen Sie dies vor dem Praktikum.
+
+- Beim Aging Alorithmus können die LogFiles voneinander abweichen. Damit
+  dies nicht der Fall ist, müssen Sie bei der Implemtierung folgende 
+  Punkte beachten:
+    o Das Aging wird durchgeführt, wenn 
+          vmem->adm.g_count % 20 == 0 
+      ist. 
+
+    o Das Aging wird im vm_read bzw. vm_write durchgeführt, nachdem
+      ggf ein Page Fault behoben und das Reference Flag gesetzt wurde.
+
+    o Diese Musterlösung verwendet einen 8 Bit breiten Age Zähler.
+
+    o Können mehrere Pages aufgrund Ihrer Alters ausgelagert werden 
+      (haben alle das selbe Alter), so wird bei der Musterlösung die Page 
+      mit der höchsten Framenummer ausgelagert.
+
+    o Wird eine Seite eingelagert, so wird ihr Age Zähler auf 0x80 gesetzt.
+      Ist ist wichtig, damit diese frisch eingelagert Seite nicht sofort wieder
+      ausgelagert wird, wenn zwei Page Fault hintereinander auftreten, ohne
+      das zwischenzeitlich das Age neu berechnet wurde.
+
+- Falls die LogFiles zu Ihrem Aging Verfahren nicht mit den hier
+  gegebenen LogFiles übereinstimmen, dann müssen Sie anhand der Ausgaben
+  Ihres Programms die korrekte Funktionsweise des Aging Algorithmus
+  darstellen können.
+
+- Es ist sicherlich möglich, dass Fehler in der Musterlösung sind. Wenn Sie 
+  der Ansicht sind, dass diese LogFiles fehlerhaft sind, schicken Sie mir bitte 
+  eine Mail.  Erklären Sie dann kurz den Grund für diese Annahme.  
+
+EOF

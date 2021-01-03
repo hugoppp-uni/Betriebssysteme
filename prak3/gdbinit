@@ -1,0 +1,12 @@
+# Init file for gdb debugger scession auf mmanger
+# This file must be set as debug init file within the debug configuration 
+# setting of eclipse.
+
+# Following signals will be used by the mmanage.
+# Hence the debugger should not stop for these signals.
+
+handle SIGUSR1 nostop
+handle SIGUSR2 nostop
+handle SIGINT nostop
+
+# EOF

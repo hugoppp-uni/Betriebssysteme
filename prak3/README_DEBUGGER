@@ -1,0 +1,11 @@
+Folgende Punkte sollten beim Debuggen beachtet werden:
+
+(1) Importiere das Projekt in Eclipse mit eigenem Makefile
+
+(2) Setze das Projektverzeichnis als include Directory
+
+(3) Setze den Init File für gdb in der Debug Konfiguration auf gdbinit
+
+(4) Debug mmanage
+
+
