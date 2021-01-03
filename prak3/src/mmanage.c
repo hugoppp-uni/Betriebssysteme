@@ -371,6 +371,7 @@ void dump_pt(void) {
 /* Your code goes here... */
 
 void cleanup(void) {
+    destroySyncDataExchange;
 }
 
 void vmem_init(void) {
@@ -386,6 +387,14 @@ void vmem_init(void) {
 }
 
 int find_unused_frame() {
+    static int frame = -1;
+
+    if (frame < VMEM_NFRAMES - 1) {
+        frame++;
+        return frame;
+    }
+
+    return VOID_IDX;
 }
 
 void allocate_page(const int req_page, const int g_count) {
@@ -400,9 +409,20 @@ void allocate_page(const int req_page, const int g_count) {
 }
 
 void fetchPage(int page, int frame){
+    int * pframe = &vmem->mainMemory[frame * VMEM_PAGESIZE];
+    fetch_page_from_pagefile (page, pframe);
+
+    vmem->pt[page].frame = frame;
+    vmem->pt[page].flags |= PTF_PRESENT;
 }
 
 void removePage(int page) {
+    if( (vmem->pt[page].flags & PTF_DIRTY) == PTF_DIRTY){
+        store_page_to_pagefile (page, &vmem->mainMemory[vmem->pt[page].frame * VMEM_PAGESIZE]);
+    }
+
+    vmem->pt[page].flags = 0;
+    vmem->pt[page].frame = VOID_IDX;
 }
 
 void find_remove_fifo(int page, int * removedPage, int *frame){
