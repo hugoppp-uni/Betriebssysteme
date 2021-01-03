@@ -50,12 +50,11 @@ static void vmem_init(void) {
     TEST_AND_EXIT_ERRNO(id == -1, strerror(errno))
 
     /* attach shared memory to vmem */
-    void *address = shmat(id, 0, 0);
-    TEST_AND_EXIT_ERRNO(address == (void *) -1, strerror(errno))
-    vmem = address;
+    vmem = shmat(id, 0, 0);
+    TEST_AND_EXIT_ERRNO(vmem == (void *) -1, strerror(errno))
 }
 
-int get_physical_address(int address) {
+int get_physical_address(int address, int write_access) {
     if (vmem == NULL) {
         vmem_init();
     }
@@ -64,10 +63,13 @@ int get_physical_address(int address) {
     int offset = address % VMEM_PAGESIZE;
 
     if (!vmem->pt[page_num].flags & PTF_PRESENT) {
-        //TODO request from mmanage via kill
-        //kill(pid, SIGUSR1);
-//        sem_wait(/*TODO*/);
+        struct msg msg = {.cmd = CMD_PAGEFAULT, .value = page_num};
+        sendMsgToMmanager(msg);
     }
+
+    if (write_access)
+        vmem->pt[page_num].flags |= PTF_DIRTY;
+    vmem->pt[page_num].flags |= PTF_REF;
 
     return vmem->pt[page_num].frame * VMEM_PAGESIZE + offset;
 }
@@ -87,14 +89,17 @@ int get_physical_address(int address) {
  * 
  *  @return     void
  ****************************************************************************************/
-static void vmem_put_page_into_mem(int address) {
-}
+//static void vmem_put_page_into_mem(int address) {
+// TODO wtf is this supposed to be
+//}
 
 int vmem_read(int address) {
-    int phy_address = get_physical_address(address);
+    int phy_address = get_physical_address(address, 0);
     return vmem->mainMemory[phy_address];
 }
 
 void vmem_write(int address, int data) {
+    int phy_address = get_physical_address(address, 1);
+    vmem->mainMemory[phy_address] = data;
 }
 // EOF
