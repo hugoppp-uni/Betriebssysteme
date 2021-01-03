@@ -27,17 +27,17 @@
 #endif
 
 /* Sizes */
-#define VMEM_VIRTMEMSIZE 1024   				//!< Size of virtual address space of the process
-#define VMEM_PHYSMEMSIZE  128   				//!< Size of physical memory
-#define VMEM_NPAGES     (VMEM_VIRTMEMSIZE / VMEM_PAGESIZE)	//!< Total number of pages 
-#define VMEM_NFRAMES (VMEM_PHYSMEMSIZE / VMEM_PAGESIZE)		//!< Total number of (page) frames 
+#define VMEM_VIRTMEMSIZE 1024                //!< Size of virtual address space of the process 1024 * 4 byte
+#define VMEM_PHYSMEMSIZE  128                //!< Size of physical memory 128 * 4 byte
+#define VMEM_NPAGES     (VMEM_VIRTMEMSIZE / VMEM_PAGESIZE)    //!< Total number of pages
+#define VMEM_NFRAMES (VMEM_PHYSMEMSIZE / VMEM_PAGESIZE)        //!< Total number of (page) frames
 
 /**
  * page table flags used by this simulation
  */
 #define PTF_PRESENT     1
 #define PTF_DIRTY       2 //!< store: need to write 
-#define PTF_REF         4       
+#define PTF_REF         4
 
 #define VOID_IDX -1       //!< Constant for invalid page or frame reference 
 
@@ -45,17 +45,18 @@
  * Page table entry
  */
 struct pt_entry {
-   int flags;             //!< See definition of PTF_* flags 
-   int frame;             //!< Frame idx; frame == VOID_IDX: unvalid reference  
+    int flags;             //!< See definition of PTF_* flags
+    int frame;             //!< Frame idx; frame == VOID_IDX: unvalid reference
 };
 
 /**
  * The data structure stored in shared memory
  */
 struct vmem_struct {
-    struct pt_entry pt[VMEM_NPAGES];               //!< page table 
-    int mainMemory[VMEM_NFRAMES * VMEM_PAGESIZE];  //!< main memory used by virtual memory simulation 
+    struct pt_entry pt[VMEM_NPAGES];   //!< page table
+    int mainMemory[VMEM_PHYSMEMSIZE];  //!< main memory used by virtual memory simulation (physical)
 };
+
 
 #define SHMSIZE (sizeof(struct vmem_struct)) //!< size of virtual memory 
 
