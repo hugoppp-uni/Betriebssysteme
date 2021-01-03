@@ -66,7 +66,7 @@ enum pt_entry_bit_mask {
 };
 
 
-bool pt_entry_is_in_memory(struct pt_entry *pt_entry, int pt_entry_bit_mask) {
+bool pt_entry_get_flag(struct pt_entry *pt_entry, int pt_entry_bit_mask) {
     return pt_entry->flags & pt_entry_bit_mask
 }
 
