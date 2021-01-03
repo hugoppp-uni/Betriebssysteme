@@ -12,6 +12,9 @@
 #include "syncdataexchange.h"
 #include "vmem.h"
 #include "debug.h"
+#include <semaphore.h>
+#include <singal.h>
+#include <sys/types.h>
 
 /*
  * static variables
@@ -38,13 +41,34 @@ static int g_count = 0;    //!< global acces counter as quasi-timestamp - will b
  *  @return     void
  ****************************************************************************************/
 static void vmem_init(void) {
-
     /* Create System V shared memory */
-
     /* We are only using the shm, don't set the IPC_CREAT flag */
+    int key = ftok(SHMKEY, SHMPROCID);
+    TEST_AND_EXIT_ERRNO(key == -1, strerror(errno))
+    int id = shmget(key, sizeof(struct vmem_struct), 0);
+    TEST_AND_EXIT_ERRNO(id == -1, strerror(errno))
 
     /* attach shared memory to vmem */
+    void *address = shmat(id, 0, 0);
+    TEST_AND_EXIT_ERRNO(address == (void *) -1, strerror(errno))
+    vmem = address;
+}
 
+int get_physical_address(int address) {
+    if (vmem == NULL) {
+        vmem_init();
+    }
+
+    int page_num = address / VMEM_PAGESIZE;
+    int offset = address % VMEM_PAGESIZE;
+
+    if (!vmem->pt[page_num].flags & PTF_PRESENT) {
+        //TODO request from mmanage via kill
+        //kill(pid, SIGUSR1);
+        sem_wait(/*TODO*/);
+    }
+
+    return vmem->pt[page_num].frame * VMEM_PAGESIZE + offset;
 }
 
 /**
@@ -66,6 +90,8 @@ static void vmem_put_page_into_mem(int address) {
 }
 
 int vmem_read(int address) {
+    int phy_address = get_physical_address(address);
+    return vmem->mainMemory[phy_address];
 }
 
 void vmem_write(int address, int data) {

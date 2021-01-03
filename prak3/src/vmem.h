@@ -27,8 +27,8 @@
 #endif
 
 /* Sizes */
-#define VMEM_VIRTMEMSIZE 1024                //!< Size of virtual address space of the process
-#define VMEM_PHYSMEMSIZE  128                //!< Size of physical memory
+#define VMEM_VIRTMEMSIZE 1024                //!< Size of virtual address space of the process 1024 * 4 byte
+#define VMEM_PHYSMEMSIZE  128                //!< Size of physical memory 128 * 4 byte
 #define VMEM_NPAGES     (VMEM_VIRTMEMSIZE / VMEM_PAGESIZE)    //!< Total number of pages
 #define VMEM_NFRAMES (VMEM_PHYSMEMSIZE / VMEM_PAGESIZE)        //!< Total number of (page) frames
 
@@ -53,22 +53,10 @@ struct pt_entry {
  * The data structure stored in shared memory
  */
 struct vmem_struct {
-    struct pt_entry pt[VMEM_NPAGES];               //!< page table 
-    int mainMemory[VMEM_NFRAMES * VMEM_PAGESIZE];  //!< main memory used by virtual memory simulation 
+    struct pt_entry pt[VMEM_NPAGES];   //!< page table
+    int mainMemory[VMEM_PHYSMEMSIZE];  //!< main memory used by virtual memory simulation (physical)
 };
 
-enum pt_entry_bit_mask {
-    PT_FLAG_CACHE = 1 << 7,
-    PT_FLAG_REFERENCED = 1 << 6,
-    PT_FLAG_MODIFIED = 1 << 5,
-    PT_FLAG_SCHUTZ = 1 << 4,
-    PT_FLAG_PRESENT = 1 << 3
-};
-
-
-bool pt_entry_get_flag(struct pt_entry *pt_entry, int pt_entry_bit_mask) {
-    return pt_entry->flags & pt_entry_bit_mask
-}
 
 #define SHMSIZE (sizeof(struct vmem_struct)) //!< size of virtual memory 
 
