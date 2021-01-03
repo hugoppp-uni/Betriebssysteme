@@ -13,8 +13,9 @@
 #include "vmem.h"
 #include "debug.h"
 #include <semaphore.h>
-#include <singal.h>
+#include <signal.h>
 #include <sys/types.h>
+#include <string.h>
 
 /*
  * static variables
@@ -65,7 +66,7 @@ int get_physical_address(int address) {
     if (!vmem->pt[page_num].flags & PTF_PRESENT) {
         //TODO request from mmanage via kill
         //kill(pid, SIGUSR1);
-        sem_wait(/*TODO*/);
+//        sem_wait(/*TODO*/);
     }
 
     return vmem->pt[page_num].frame * VMEM_PAGESIZE + offset;

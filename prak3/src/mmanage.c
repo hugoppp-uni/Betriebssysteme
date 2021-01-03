@@ -386,35 +386,42 @@ void vmem_init(void) {
 }
 
 int find_unused_frame() {
+    return -1;
 }
 
 void allocate_page(const int req_page, const int g_count) {
 
     /* Log action */
-    le.req_pageno = req_page;
-    le.replaced_page = removedPage;
-    le.alloc_frame = frame;
-    le.g_count = g_count; 
-    le.pf_count = pf_count;
-    logger(le);
+//    le.req_pageno = req_page;
+//    le.replaced_page = removedPage;
+//    le.alloc_frame = frame;
+//    le.g_count = g_count;
+//    le.pf_count = pf_count;
+//    logger(le);
 }
 
 void fetchPage(int page, int frame){
+    return;
 }
 
 void removePage(int page) {
+    return;
 }
 
 void find_remove_fifo(int page, int * removedPage, int *frame){
+    return;
 }
 
 static void find_remove_aging(int page, int * removedPage, int *frame){
+    return;
 }
 
 static void update_age_reset_ref(void) {
-} 
+    return;
+}
 
 static void find_remove_clock(int page, int * removedPage, int *frame){
+    return;
 }
 
 // EOF
