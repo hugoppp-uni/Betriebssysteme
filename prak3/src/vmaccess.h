@@ -23,7 +23,7 @@ int vmem_read(int address);
 
 /**
  *****************************************************************************************
- *  @brief      This function writes an integer value from virtual memory.
+ *  @brief      This function writes an integer value to virtual memory.
  *              If this functions access virtual memory for the first time, the 
  *              virtual memory will be setup and initialized.
  *

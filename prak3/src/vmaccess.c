@@ -103,7 +103,7 @@ static void vmem_put_page_into_mem(int address) {
 	g_count++;
 	//send message to memory manager, if time window handle by g_count has reached
 	if((g_count % TIME_WINDOW) == 0){
-		struct msg msg = {.cmd = CMD_TIME_INTER_VAL, .g_count = g_count};
+		struct msg msg = {.cmd = CMD_TIME_INTER_VAL, .value = page_num, .g_count = g_count};
 		sendMsgToMmanager(msg);
 		//now memory manager will update aging information. See mmanage.c update_age_reset_ref()
 	}
