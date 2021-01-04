@@ -54,25 +54,25 @@ static void vmem_init(void) {
     TEST_AND_EXIT_ERRNO(vmem == (void *) -1, strerror(errno))
 }
 
-int get_physical_address(int address, int write_access) {
-    if (vmem == NULL) {
-        vmem_init();
-    }
-
-    int page_num = address / VMEM_PAGESIZE;
-    int offset = address % VMEM_PAGESIZE;
-
-    if (!vmem->pt[page_num].flags & PTF_PRESENT) {
-        struct msg msg = {.cmd = CMD_PAGEFAULT, .value = page_num};
-        sendMsgToMmanager(msg);
-    }
-
-    if (write_access)
-        vmem->pt[page_num].flags |= PTF_DIRTY;
-    vmem->pt[page_num].flags |= PTF_REF;
-
-    return vmem->pt[page_num].frame * VMEM_PAGESIZE + offset;
-}
+//int get_physical_address(int address, int write_access) {
+//    if (vmem == NULL) {
+//        vmem_init();
+//    }
+//
+//    int page_num = address / VMEM_PAGESIZE;
+//    int offset = address % VMEM_PAGESIZE;
+//
+//    if (!vmem->pt[page_num].flags & PTF_PRESENT) {
+//        struct msg msg = {.cmd = CMD_PAGEFAULT, .value = page_num};
+//        sendMsgToMmanager(msg);
+//    }
+//
+//    if (write_access)
+//        vmem->pt[page_num].flags |= PTF_DIRTY;
+//    vmem->pt[page_num].flags |= PTF_REF;
+//
+//    return vmem->pt[page_num].frame * VMEM_PAGESIZE + offset;
+//}
 
 /**
  *****************************************************************************************
@@ -89,17 +89,47 @@ int get_physical_address(int address, int write_access) {
  * 
  *  @return     void
  ****************************************************************************************/
-//static void vmem_put_page_into_mem(int address) {
-// TODO wtf is this supposed to be
-//}
+static void vmem_put_page_into_mem(int address) {
+// TODO wtf is this supposed to be DONE
+	//put page into memory(if required = if it is not already in memory)
+	int page_num = address / VMEM_PAGESIZE; //get page number
+	if (!(vmem->pt[page_num].flags & PTF_PRESENT)) {
+	        struct msg msg = {.cmd = CMD_PAGEFAULT, .value = page_num, .g_count = g_count};
+	        sendMsgToMmanager(msg);
+	}
+	//update Ref Bit of pt_entry
+	vmem->pt[page_num].flags |= PTF_REF;
+	//increment g_count by each memory access
+	g_count++;
+	//send message to memory manager, if time window handle by g_count has reached
+	if((g_count % TIME_WINDOW) == 0){
+		struct msg msg = {.cmd = CMD_TIME_INTER_VAL, .g_count = g_count};
+		sendMsgToMmanager(msg);
+		//now memory manager will update aging information. See mmanage.c update_age_reset_ref()
+	}
+	//
+}
 
 int vmem_read(int address) {
-    int phy_address = get_physical_address(address, 0);
-    return vmem->mainMemory[phy_address];
+	if (vmem == NULL) {
+		vmem_init();
+	}
+	vmem_put_page_into_mem(address);
+	int page_num = address / VMEM_PAGESIZE;
+	int offset = address % VMEM_PAGESIZE;
+	int phys_data = vmem->pt[page_num].frame * VMEM_PAGESIZE + offset;
+	return vmem->mainMemory[phys_data];
 }
 
 void vmem_write(int address, int data) {
-    int phy_address = get_physical_address(address, 1);
-    vmem->mainMemory[phy_address] = data;
+	if (vmem == NULL) {
+			vmem_init();
+	}
+	vmem_put_page_into_mem(address);
+	int page_num = address / VMEM_PAGESIZE;
+	int offset = address % VMEM_PAGESIZE;
+	vmem->pt[page_num].flags |= PTF_DIRTY;
+	int phys_data = vmem->pt[page_num].frame * VMEM_PAGESIZE + offset;
+    vmem->mainMemory[phys_data] = data;
 }
 // EOF
