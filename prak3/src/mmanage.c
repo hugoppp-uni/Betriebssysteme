@@ -28,6 +28,7 @@
 #include "logger.h"
 #include "syncdataexchange.h"
 #include "vmem.h"
+#include "limits.h"
 
 /*
  * Signatures of private / static functions
@@ -130,7 +131,7 @@ static void dump_pt(void);
  *  @param      frame Number of frame that will be used to store the page.
  *
  ****************************************************************************************/
-static void find_remove_aging(int page, int *removedPage, int *frame);
+static void find_remove_aging(int page, int *removed_page, int *frame);
 
 /**
  *****************************************************************************************
@@ -400,21 +401,21 @@ int find_unused_frame() {
 }
 
 void allocate_page(const int req_page, const int g_count) {
-    int removed_page_id = VOID_IDX;
-    int frame_id = find_unused_frame();
-    if (frame_id == VOID_IDX) {
+    int removed_page = VOID_IDX;
+    int frame = find_unused_frame();
+    if (frame == VOID_IDX) {
         //all frames are in use, so remove a page with page replacement algorithm
-        pageRepAlgo(req_page, &removed_page_id, &frame_id);
-        removePage(removed_page_id);
+        pageRepAlgo(req_page, &removed_page, &frame);
+        removePage(removed_page);
     }
 
     //fetch page from pagefile
-    fetchPage(req_page, frame_id);
-    return; //TODO log the page fault
+    fetchPage(req_page, frame);
 
+    //TODO log the page fault
     /* Log action */
 //    le.req_pageno = req_page;
-//    le.replaced_page = removedPage;
+//    le.replaced_page = removed_page;
 //    le.alloc_frame = frame;
 //    le.g_count = g_count;
 //    le.pf_count = pf_count;
@@ -438,7 +439,6 @@ void removePage(int page) {
 
     vmem->pt[page].flags = 0;
     vmem->pt[page].frame = VOID_IDX;
-    return;
 }
 
 
@@ -455,15 +455,32 @@ void find_remove_fifo(int page, int *removedPage, int *frame) {
     }
 
     first_frame = (first_frame + 1) % VMEM_NFRAMES;
-    return;
 }
 
-static void find_remove_aging(int page, int *removedPage, int *frame) {
-    return;
+static void find_remove_aging(int page, int *removed_page, int *frame) {
+    struct age smallest = age[0];
+    *frame = 0;
+    for (int i = 1; i < VMEM_NFRAMES; i++) {
+        if (age[i].age < smallest.age) {
+            smallest = age[i];
+            *frame = i;
+        }
+    }
+
+    //Because: "If an unused frame has selected, this parameter will not be modified."
+    if (smallest.page != VOID_IDX){
+        *removed_page = smallest.page;
+    }
 }
 
 static void update_age_reset_ref(void) {
-    return;
+    for (int i = 0; i < VMEM_NFRAMES; i++){
+        age[i].age >>= 1;
+        if (vmem->pt[age[i].page].flags & PTF_REF) {
+            //set the most significant bit to 1
+            age[i].age |= (1 << (CHAR_BIT - 1));
+        }
+    }
 }
 
 static void find_remove_clock(int page, int *removedPage, int *frame) {
@@ -484,7 +501,6 @@ static void find_remove_clock(int page, int *removedPage, int *frame) {
     }
 
     first_frame = (first_frame + 1) % VMEM_NFRAMES;
-    return;
 }
 
 // EOF

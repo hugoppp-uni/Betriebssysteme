@@ -90,7 +90,6 @@ static void vmem_init(void) {
  *  @return     void
  ****************************************************************************************/
 static void vmem_put_page_into_mem(int address) {
-// TODO wtf is this supposed to be DONE
 	//put page into memory(if required = if it is not already in memory)
 	int page_num = address / VMEM_PAGESIZE; //get page number
 	if (!(vmem->pt[page_num].flags & PTF_PRESENT)) {
@@ -103,7 +102,9 @@ static void vmem_put_page_into_mem(int address) {
 	g_count++;
 	//send message to memory manager, if time window handle by g_count has reached
 	if((g_count % TIME_WINDOW) == 0){
-		struct msg msg = {.cmd = CMD_TIME_INTER_VAL, .value = page_num, .g_count = g_count};
+        //TODO im comment vom CMD_TIME_INTER_VAL steht nicht, dass value nicht von relevanz ist,
+        // was soll hier also value sein??
+        struct msg msg = {.cmd = CMD_TIME_INTER_VAL, .g_count = g_count};
 		sendMsgToMmanager(msg);
 		//now memory manager will update aging information. See mmanage.c update_age_reset_ref()
 	}
