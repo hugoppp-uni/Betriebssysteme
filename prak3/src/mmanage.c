@@ -33,10 +33,27 @@
  * Signatures of private / static functions
  */
 
-
+/**
+ *****************************************************************************************
+ *  @brief      This function fetchs a page from disk into memory. The page table 
+ *              will be updated.
+ *
+ *  @param      page Number of the page that should be removed
+ *  @param      frame Number of frame that should contain the page.
+ * 
+ *  @return     void 
+ ****************************************************************************************/
 static void fetchPage(int page, int frame);
 
-
+/**
+ *****************************************************************************************
+ *  @brief      This function removes a page from main memory. If the page was modified,
+ *              it will be written back to disk. The page table will be updated.
+ *
+ *  @param      page Number of the page that should be removed
+ * 
+ *  @return     void 
+ ****************************************************************************************/
 static void removePage(int page);
 
 /**
@@ -63,7 +80,20 @@ static void vmem_init(void);
  ****************************************************************************************/
 static int find_unused_frame();
 
+/**
+ *****************************************************************************************
+ *  @brief      This function will be called when a page fault has occurred. It allocates 
+ *              a new page into memory. If all frames are in use the corresponding page 
+ *              replacement algorithm will be called.
+ *              Please take into account that allocate_page must update the page table 
+ *              and log the page fault as well.
+ *
+ *  @param      req_page  The page that must be allocated due to the page fault. 
 
+ *  @param      g_count   Current g_count value
+ *
+ *  @return     void 
+ ****************************************************************************************/
 static void allocate_page(const int req_page, const int g_count);
 
 /**
@@ -403,16 +433,7 @@ void allocate_page(const int req_page, const int g_count) {
 //    le.pf_count = pf_count;
 //    logger(le);
 }
-/**
- *****************************************************************************************
- *  @brief      This function fetches a page from disk into memory. The page table
- *              will be updated.
- *
- *  @param      page Number of the page that should be removed ??????
- *  @param      frame Number of frame that should contain the page.
- *
- *  @return     void
- ****************************************************************************************/
+
 void fetchPage(int page, int frame) {
 
     int *pframe = &vmem->mainMemory[frame * VMEM_PAGESIZE];
@@ -421,15 +442,7 @@ void fetchPage(int page, int frame) {
     vmem->pt[page].frame = frame;
     vmem->pt[page].flags |= PTF_PRESENT;
 }
-/**
- *****************************************************************************************
- *  @brief      This function removes a page from main memory. If the page was modified,
- *              it will be written back to disk. The page table will be updated.
- *
- *  @param      page Number of the page that should be removed
- *
- *  @return     void
- ****************************************************************************************/
+
 void removePage(int page) {
     if (vmem->pt[page].flags & PTF_DIRTY) {
         store_page_to_pagefile(page, &vmem->mainMemory[vmem->pt[page].frame * VMEM_PAGESIZE]);
@@ -442,9 +455,7 @@ void removePage(int page) {
 
 
 void find_remove_fifo(int page, int *removedPage, int *frame) {
-
-	removePage(*removedPage);
-	return;
+    return;
 }
 
 static void find_remove_aging(int page, int *removedPage, int *frame) {
