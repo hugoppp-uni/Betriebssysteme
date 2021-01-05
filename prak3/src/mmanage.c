@@ -88,7 +88,7 @@ static int find_unused_frame();
  *              Please take into account that allocate_page must update the page table 
  *              and log the page fault as well.
  *
- *  @param      req_page  The page that must be allocated due to the page fault. 
+ *  @param      req_page  The page that must be allocated due to the page fault.
 
  *  @param      g_count   Current g_count value
  *
@@ -151,7 +151,7 @@ static void update_age_reset_ref(void);
  *  @param      page Number of page that should be loaded into memory.
  *
  *  @param      removedPage Number of page that has been selected for replacement.
- *              If an unused frame has selected, this parameter will not be 
+ *              If an unused frame has been selected, this parameter will not be
  *              modified.
  *
  *  @param      frame Number of frame that will be used to store the page.
@@ -166,7 +166,7 @@ static void find_remove_fifo(int page, int *removedPage, int *frame);
  *  @param      page Number of page that should be loaded into memory.
  *
  *  @param      removedPage Number of page that has been selected for replacement.
- *              If an unused frame has selected, this parameter will not be 
+ *              If an unused frame has been selected, this parameter will not be
  *              modified.
  *
  *  @param      frame Number of frame that will be used to store the page.
@@ -214,7 +214,8 @@ static void print_usage_info_and_exit(char *err_str, char *programName);
 static int pf_count = 0;               //!< page fault counter
 static int shm_id = -1;                //!< shared memory id. Will be used to destroy shared memory when mmanage terminates
 
-static void (*pageRepAlgo) (int, int*, int*) = NULL; //!< selected page replacement algorithm according to parameters of mmanage
+static void
+(*pageRepAlgo)(int, int *, int *) = NULL; //!< selected page replacement algorithm according to parameters of mmanage
 
 /* information used for ageing replacement strategy. For each frame, which stores a valid page, 
  * the age and and the corresponding page will be stored.
@@ -397,32 +398,18 @@ int find_unused_frame() {
     }
     return VOID_IDX;
 }
-/**
- *****************************************************************************************
- *  @brief      This function will be called when a page fault has occurred. It allocates
- *              a new page into memory. If all frames are in use the corresponding page
- *              replacement algorithm will be called.
- *              Please take into account that allocate_page must update the page table
- *              and log the page fault as well.
- *
- *  @param      req_page  The page that must be allocated due to the page fault.
 
- *  @param      g_count   Current g_count value
- *
- *  @return     void
- ****************************************************************************************/
 void allocate_page(const int req_page, const int g_count) {
-    int removedPage = 0;
-    int frame = 0;
+    int removed_page_id = VOID_IDX;
     int frame_id = find_unused_frame();
     if (frame_id == VOID_IDX) {
         //all frames are in use, so remove a page with page replacement algorithm
-    	pageRepAlgo(req_page, &removedPage, &frame);
+        pageRepAlgo(req_page, &removed_page_id, &frame_id);
+        removePage(removed_page_id);
+    }
 
-    } //else {
-        //fetch page from pagefile
-    	fetchPage(req_page, frame_id);
-    //}
+    //fetch page from pagefile
+    fetchPage(req_page, frame_id);
     return; //TODO log the page fault
 
     /* Log action */
@@ -454,7 +441,22 @@ void removePage(int page) {
 }
 
 
+// diese Methode schreibt die page mit der id *page* in den RAM.
+// Dabei wird eine page entfernt. Die ID dieser wird ueber den parameter
+// *removedPage* uebergeben.
 void find_remove_fifo(int page, int *removedPage, int *frame) {
+    static int first_frame = 0;
+
+    //finds the page that uses the frame last_frame
+    for (int i = 0; i < VMEM_NPAGES; i++) {
+        if (vmem->pt[i].frame == first_frame) {
+            *removedPage = i;
+            break;
+        }
+    }
+
+    *frame = first_frame;
+    first_frame = (first_frame + 1) % VMEM_NFRAMES;
     return;
 }
 
@@ -467,6 +469,28 @@ static void update_age_reset_ref(void) {
 }
 
 static void find_remove_clock(int page, int *removedPage, int *frame) {
+    static int first_frame = 0;
+
+    //finds the page that uses the frame last_frame
+    for (int i = 0; i < VMEM_NPAGES; i++) {
+
+        //check if present (this is faster than unpacking the bitflags)
+        if (vmem->pt[i].frame == VOID_IDX)
+            continue;
+
+        if (vmem->pt[i].flags & PTF_REF) {
+            //clear the R bit
+            vmem->pt[i].flags &= ~PTF_REF;
+        } else {
+            *removedPage = i;
+            break;
+        }
+    }
+
+    *frame = first_frame;
+    first_frame = (first_frame + 1) % VMEM_NFRAMES;
+    return;
+
     return;
 }
 
