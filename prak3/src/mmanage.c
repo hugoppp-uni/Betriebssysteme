@@ -425,6 +425,7 @@ void fetchPage(int page, int frame) {
 
     int *pframe = &vmem->mainMemory[frame * VMEM_PAGESIZE];
     fetch_page_from_pagefile(page, pframe);
+    age[frame].page = page;
 
     vmem->pt[page].frame = frame;
     vmem->pt[page].flags |= PTF_PRESENT;
@@ -447,15 +448,12 @@ void removePage(int page) {
 void find_remove_fifo(int page, int *removedPage, int *frame) {
     static int first_frame = 0;
 
-    //finds the page that uses the frame last_frame
-    for (int i = 0; i < VMEM_NPAGES; i++) {
-        if (vmem->pt[i].frame == first_frame) {
-            *removedPage = i;
-            break;
-        }
+    *frame = first_frame;
+    int page_used_by_first_frame = age[first_frame].page;
+    if (page_used_by_first_frame != VOID_IDX){
+        *removedPage = page_used_by_first_frame;
     }
 
-    *frame = first_frame;
     first_frame = (first_frame + 1) % VMEM_NFRAMES;
     return;
 }
@@ -471,26 +469,21 @@ static void update_age_reset_ref(void) {
 static void find_remove_clock(int page, int *removedPage, int *frame) {
     static int first_frame = 0;
 
+    *frame = first_frame;
     //finds the page that uses the frame last_frame
-    for (int i = 0; i < VMEM_NPAGES; i++) {
+    for (int i = 0; i < VMEM_NFRAMES; i++) {
 
-        //check if present (this is faster than unpacking the bitflags)
-        if (vmem->pt[i].frame == VOID_IDX)
-            continue;
-
-        if (vmem->pt[i].flags & PTF_REF) {
+        int page_num = age[i].page;
+        if (vmem->pt[page_num].flags & PTF_REF) {
             //clear the R bit
-            vmem->pt[i].flags &= ~PTF_REF;
+            vmem->pt[page_num].flags &= ~PTF_REF;
         } else {
             *removedPage = i;
             break;
         }
     }
 
-    *frame = first_frame;
     first_frame = (first_frame + 1) % VMEM_NFRAMES;
-    return;
-
     return;
 }
 
