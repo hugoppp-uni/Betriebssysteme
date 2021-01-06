@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <execinfo.h>
+#include <string.h>
 
 #ifdef DEBUG_MESSAGES
 /**
