@@ -5,12 +5,14 @@
  * @brief This header file defines some macros for debug output.
  */
 
-#ifndef DEBUG_H 
+#ifndef DEBUG_H
 #define DEBUG_H
 
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <signal.h>
+#include <execinfo.h>
 
 #ifdef DEBUG_MESSAGES
 /**
@@ -24,20 +26,26 @@
 #define PRINT_DEBUG(str) { }
 #endif /* DEBUG_MESSAGES */
 
+#ifdef SIGTRAP
+#define DEBUG_BREAK raise(SIGTRAP);
+#else
+#define DEBUG_BREAK
+#endif
 
 /**
- * Based on a condition this macro  generates an perror message an exits.
+ * Based on a condition this macro, break, generate an perror message and exit.
  */
 #define TEST_AND_EXIT_ERRNO(cond, str) if (cond) { \
-        perror(str); \
-        exit(EXIT_FAILURE); \
+        fprintf(stderr, "[ERROR] [%s] %s \n\t\tat %s (%s:%d)\n", strerror(errno), str, __FUNCTION__, __FILE__, __LINE__); \
+        DEBUG_BREAK;                               \
+        exit(EXIT_FAILURE);                        \
 }
 
 /**
  * Based on a condition this macro prints an error message to stderr and exits.
  */
 #define TEST_AND_EXIT(cond, str) if (cond) { \
-        fprintf str; \
+        fprintf(stderr, "[ERROR] %s \n\t\tat %s %s:%d\n", str, __FUNCTION__, __FILE__, __LINE__); \
         exit(EXIT_FAILURE); \
 }
 
