@@ -412,14 +412,15 @@ void allocate_page(const int req_page, const int g_count) {
     //fetch page from pagefile
     fetchPage(req_page, frame);
 
-    //TODO log the page fault
     /* Log action */
-//    le.req_pageno = req_page;
-//    le.replaced_page = removed_page;
-//    le.alloc_frame = frame;
-//    le.g_count = g_count;
-//    le.pf_count = pf_count;
-//    logger(le);
+    pf_count++;
+    struct logger le;
+    le.req_pageno = req_page;
+    le.replaced_page = removed_page;
+    le.alloc_frame = frame;
+    le.g_count = g_count;
+    le.pf_count = pf_count;
+    logger(le);
 }
 
 void fetchPage(int page, int frame) {
@@ -427,7 +428,8 @@ void fetchPage(int page, int frame) {
     int *pframe = &vmem->mainMemory[frame * VMEM_PAGESIZE];
     fetch_page_from_pagefile(page, pframe);
     age[frame].page = page;
-
+    //Wird eine Seite eingelagert, so setzen Sie ihren Age Zähler auf 0x80.
+    age[frame].age = 0x80;
     vmem->pt[page].frame = frame;
     vmem->pt[page].flags |= PTF_PRESENT;
 }
@@ -446,7 +448,7 @@ void removePage(int page) {
 // Dabei wird eine page entfernt. Die ID dieser wird ueber den parameter
 // *removedPage* uebergeben.
 void find_remove_fifo(int page, int *removedPage, int *frame) {
-    static int first_frame = 0;
+    static int first_frame = 0;	//the oldest frame in main memory
 
     *frame = first_frame;
     int page_used_by_first_frame = age[first_frame].page;
@@ -458,9 +460,11 @@ void find_remove_fifo(int page, int *removedPage, int *frame) {
 }
 
 static void find_remove_aging(int page, int *removed_page, int *frame) {
-    struct age smallest = age[0];
-    *frame = 0;
-    for (int i = 1; i < VMEM_NFRAMES; i++) {
+    // if more then one page should be removed(do they have the same age)
+	// the page with the highest frame will be removed.
+	struct age smallest = age[VMEM_NFRAMES-1];
+    *frame = VMEM_NFRAMES-1;
+    for (int i = VMEM_NFRAMES-2; i >= 0; i--) {
         if (age[i].age < smallest.age) {
             smallest = age[i];
             *frame = i;
