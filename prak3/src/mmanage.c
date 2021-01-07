@@ -214,6 +214,7 @@ static void print_usage_info_and_exit(char *err_str, char *programName);
 
 static int pf_count = 0;               //!< page fault counter
 static int shm_id = -1;                //!< shared memory id. Will be used to destroy shared memory when mmanage terminates
+static int clock_pointer = 0;
 
 static void
 (*pageRepAlgo)(int, int *, int *) = NULL; //!< selected page replacement algorithm according to parameters of mmanage
@@ -378,9 +379,10 @@ void cleanup(void) {
 void vmem_init(void) {
     /* Create System V shared memory */
     /* We are only using the shm, don't set the IPC_CREAT flag */
-    int key = ftok(SHMKEY, SHMPROCID);
+//    int key = ftok("./src/mmanage.h", SHMPROCID);
+    int key = 1234;
     TEST_AND_EXIT_ERRNO(key == -1, strerror(errno))
-    int id = shmget(key, sizeof(struct vmem_struct), IPC_CREAT);
+    int id = shmget(key, SHMSIZE, 0664 | IPC_CREAT);
     TEST_AND_EXIT_ERRNO(id == -1, strerror(errno))
 
     /* attach shared memory to vmem */
@@ -388,6 +390,7 @@ void vmem_init(void) {
     TEST_AND_EXIT_ERRNO(vmem == (void *) -1, strerror(errno))
     /* Fill with zeros */
     memset(vmem, 0, SHMSIZE);
+    clock_pointer = 0;
 }
 
 int find_unused_frame() {
@@ -406,11 +409,13 @@ void allocate_page(const int req_page, const int g_count) {
     if (frame == VOID_IDX) {
         //all frames are in use, so remove a page with page replacement algorithm
         pageRepAlgo(req_page, &removed_page, &frame);
-        removePage(removed_page);
+        if (removed_page != VOID_IDX)
+            removePage(removed_page);
     }
 
     //fetch page from pagefile
     fetchPage(req_page, frame);
+    pf_count++;
 
     /* Log action */
     struct logevent le;
@@ -479,31 +484,30 @@ static void find_remove_aging(int page, int *removed_page, int *frame) {
 static void update_age_reset_ref(void) {
     for (int i = 0; i < VMEM_NFRAMES; i++){
         age[i].age >>= 1;
-        if (vmem->pt[age[i].page].flags & PTF_REF) {
+        if (age[i].page != -1 && vmem->pt[age[i].page].flags & PTF_REF) {
             //set the most significant bit to 1
             age[i].age |= (1 << (CHAR_BIT - 1));
+            vmem->pt[age[i].page].flags &= ~PTF_REF;
         }
     }
 }
 
 static void find_remove_clock(int page, int *removedPage, int *frame) {
-    static int first_frame = 0;
 
-    *frame = first_frame;
-    //finds the page that uses the frame last_frame
-    for (int i = 0; i < VMEM_NFRAMES; i++) {
-
-        int page_num = age[i].page;
+    while (1){
+        int page_num = age[clock_pointer].page;
         if (vmem->pt[page_num].flags & PTF_REF) {
             //clear the R bit
             vmem->pt[page_num].flags &= ~PTF_REF;
         } else {
-            *removedPage = i;
-            break;
+            *removedPage = page_num;
+            *frame = clock_pointer;
+            clock_pointer = (clock_pointer + 1) % VMEM_NFRAMES;
+            return;
         }
+        clock_pointer = (clock_pointer + 1) % VMEM_NFRAMES;
     }
 
-    first_frame = (first_frame + 1) % VMEM_NFRAMES;
 }
 
 // EOF

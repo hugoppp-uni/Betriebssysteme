@@ -44,9 +44,11 @@ static int g_count = 0;    //!< global acces counter as quasi-timestamp - will b
 static void vmem_init(void) {
     /* Create System V shared memory */
     /* We are only using the shm, don't set the IPC_CREAT flag */
-    int key = ftok(SHMKEY, SHMPROCID);
+//    int key = ftok("./src/mmanage.h", SHMPROCID);
+
+    int key = 1234;
     TEST_AND_EXIT_ERRNO(key == -1, "ftok: key no generated");
-    int id = shmget(key, sizeof(struct vmem_struct), 0);
+    int id = shmget(key, sizeof(struct vmem_struct), 0664 | IPC_CREAT);
     TEST_AND_EXIT_ERRNO(id == -1, "shmget: id no generated");
 
     /* attach shared memory to vmem */
