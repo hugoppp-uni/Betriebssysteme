@@ -413,8 +413,7 @@ void allocate_page(const int req_page, const int g_count) {
     fetchPage(req_page, frame);
 
     /* Log action */
-    pf_count++;
-    struct logger le;
+    struct logevent le;
     le.req_pageno = req_page;
     le.replaced_page = removed_page;
     le.alloc_frame = frame;
