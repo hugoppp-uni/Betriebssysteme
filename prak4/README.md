@@ -3,7 +3,7 @@
 
 ## [Installation](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/ch03s02.html)
 Zum Installieren werden per Bash Skript mit `sudo mknod` zwei Device Nodes erstellt.
-Dafür wird die Major Nummer zuvor dynamisch ermittelt. Die Minor Nummer beträgt 0 und 1.
+Dafür wird die Major Nummer zuvor mithilfe von `awk` dynamisch ermittelt. Die Minor Nummer beträgt 0 und 1.
 Außerdem wird das Gerät mit `sudo insmod` geladen.
 
 ## Ver- / Entschlüsselung
@@ -14,8 +14,8 @@ wobei mit dem Modulo Operator gearbeitet wird, sodass nach dem Ende letzten Inde
 Die Entschlüsselungsmethoden kann die Verschlüsselungsmethode mit einem negiertem `translate_shift` aufrufen.
 
 ## Initialisierung und Exit
-Die Init bzw Exit Methode wird beim Starten bzw. Schliesen aufgerufen. Dafür muss `module_init(<functino>)` und `module_exit(<function>)` definiert werden.
-Die macros `__init` und `__exit` können ausserdem verwendet werden, um dem Kernel mitzuteilen, dass diese Methoden nicht manuel aufgerufen werden,
+Die Init bzw Exit Methode wird beim Starten bzw. Schließen aufgerufen. Dafür muss `module_init(<functino>)` und `module_exit(<function>)` definiert werden.
+Die macros `__init` und `__exit` können außerdem verwendet werden, um dem Kernel mitzuteilen, dass diese Methoden nicht manuel aufgerufen werden,
 sodass diese nicht im Arbeitspeicher gehalten werden müssen. Bemerkenswert ist hierbei, dass der Arbeitsspeicher im Kernel-Mode nicht in die
 Pagefile ausgelagert werden kann.
 
@@ -23,16 +23,15 @@ Pagefile ausgelagert werden kann.
 Mit [`kmalloc (size_t size, gfp_t flags)`](http://books.gigatux.nl/mirror/kerneldevelopment/0672327201/ch11lev1sec4.html) wird Speicher für die Puffer alloziert.
 
 Mit der Methode
-```C
+```c
 int __register_chrdev (	unsigned int major,
- 	unsigned int baseminor,
- 	unsigned int count,
- 	const char * name,
- 	const struct file_operations * fops);
+ 	                    unsigned int baseminor,
+                    	unsigned int count,
+ 	                    const char * name,
+ 	                    const struct file_operations * fops);
 ```
-wird eine major nummer registriert. (siehe [kernel.com](https://www.kernel.org/doc/htmldocs/kernel-api/API---register-chrdev.html))
-
-Mit `device_create` wird das Gerät registriert.
+wird eine Major Nummer erstellt und das Gerät registriert. (siehe [kernel.com](https://www.kernel.org/doc/htmldocs/kernel-api/API---register-chrdev.html))
+Dabei wird als `major` parameter 0 übergeben, sodass der Rückgabewert der Major Nummer entspricht.
 
 ### Exit
 
