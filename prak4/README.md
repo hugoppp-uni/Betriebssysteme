@@ -12,8 +12,18 @@
     - Normal debbugger does not work [38]
     - System can easily be corrupted -> eg crash [38]
     - Kernel modules can not be swapped out of ram [38]
+    - http://derekmolloy.ie/writing-a-linux-kernel-module-part-1-introduction#The_Module_Code
+        - do not execute sequentially
+        - do not have automatic cleanup
+        - do not have printf() functions 
+        - have a higher level of execution privilege 
+        - do not have floating-point support 
 2. Was sind Major- und Minor-Nummern und wo würden die in einer Implementierung auftauchen?\
+    -https://www.oreilly.com/openbook/linuxdrive3/book/ch03.pdf
+        - The major number identifies the driver associated with the device
+        - The minor number is used by the kernel to determine exactly which device is being referred to
 3. Wie führen Sie Tests durch? 
+    - http://derekmolloy.ie/writing-a-linux-kernel-module-part-1-introduction#Testing_the_LKM
 4. Was ist im Programmcode zu beachten?
     - Always check error codes
     - Init method [32]
