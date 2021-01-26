@@ -151,8 +151,9 @@ nachdem sie ver / entschlüsselt wurden.
 `translate_dev->p_write` wird um die Anzahl an gelesener Zeichen inkrementiert.
 
 ### [Synchronization](https://www.oreilly.com/library/view/linux-device-drivers/0596005903/ch05.html)
-Zur Synchronization werden pro Gerät ein Semaphore und zwei `wait_queue`s verwendet.
+Zur Synchronization werden pro Gerät ein Semaphore im Mutex-Modus und zwei `wait_queue`s verwendet.
 
+#### Semaphore
 ```c
 void init_MUTEX(struct semaphore *sem);
 // lock mutex. If retval non-zero, interrupt occured => return -ERESTARTSYS
@@ -160,6 +161,14 @@ int down_interruptible(struct semaphore *sem);
 // unlock mutex
 void up(struct semaphore *sem); 
 ```
+
+#### Wait Queue
+```c
+init_waitqueue_head(&translate_dev->wait_queue_read);
+init_waitqueue_head(&translate_dev->wait_queue_write);
+```
+Das Lesen wird blockiert, wenn im Buffer keine Elemente mehr vorhanden sind `translate_dev->size == 0`, 
+das Schreiben, wenn der Buffer voll ist.
 
 ## Aufgaben
 
