@@ -150,8 +150,16 @@ Beim Schreiben werden die übergebenen Charactere mithilfe von `copy_from_user` 
 nachdem sie ver / entschlüsselt wurden.
 `translate_dev->p_write` wird um die Anzahl an gelesener Zeichen inkrementiert.
 
-### Synchronization
+### [Synchronization](https://www.oreilly.com/library/view/linux-device-drivers/0596005903/ch05.html)
 Zur Synchronization werden pro Gerät ein Semaphore und zwei `wait_queue`s verwendet.
+
+```c
+void init_MUTEX(struct semaphore *sem);
+// lock mutex. If retval non-zero, interrupt occured => return -ERESTARTSYS
+int down_interruptible(struct semaphore *sem); 
+// unlock mutex
+void up(struct semaphore *sem); 
+```
 
 ## Aufgaben
 
