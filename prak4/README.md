@@ -119,6 +119,10 @@ in den read und write Methoden.
 Falls das Gerät bereits im angefordertem Modus verwendet wird, was mithilfe 
 `translate_dev->is_open_read` und `translate_dev->is_open_write` abgefragt wird,
 gibt die Methode `EBUSY` zurück. Andernfalls werden die Flags in dem struct entsprechended gesetzt.
+Dieser Vorgang ist ein kritischer Bereich, da bei gleichzeitiger Ausführung möglicherweise mehrenren 
+Auferufern Zugriff gewährt wird. Somit wird zuvor der Semaphore mit `down_interruptible` gelockt, anschließend
+mit `up` wieder freigegeben
+(Siehe Abschnitt [Synchronization](https://git.haw-hamburg.de/acs521/bsp/-/edit/master/prak4/README.md#synchronization)).
 
 ### [Read / Write](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/ch03s08.html)
 Die Prototypen für die Read / Write Operationen sehen wie folgt aus:
