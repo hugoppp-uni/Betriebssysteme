@@ -71,17 +71,16 @@ aufrufen von `kmalloc` zurückgegeben wurde.
 ## [File System](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/ch03s03.html)
 Um schreibende und lesende Funktionen zur Verfügung zu stellen, wird der Header `<linux/fs.h>` benutzt. 
 
-- [file](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/ch03s04.html)
-    - represents an open file descriptor
-    - has fops pointer
-    - points to n inode
-        - there can be multiple files for one inode
 - inode
-    - represents a file
-    - has `i_rdev` / device number
-    - has fops pointer ?
-- [fops](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/ch03s03.html)
-    - holds function pointers to the operations to read / write etc.
+    - representiert eine Datei
+    - hat `i_rdev`
+- [file](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/ch03s04.html)
+    - representiert eine geöffnete Datei
+    - Hat einen `file_operations` pointer
+    - Zeigt auf eine `inode`
+        - Es kann mehrere `file`s für eine `inode` geben
+- [file_operations](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/ch03s03.html)
+    - Hält Funktionspointer, die Operationen wie Lesen / Schreiben definieren.
 
 Das struct file_operations wird wie folgt definiert: 
 ```c 
@@ -93,11 +92,8 @@ static struct file_operations fops =
    .release = dev_release,
 };
 ```
-
 wobei die Werte jeweils Funktionspointer auf die in dem nächsten Abschnitten erklärten Methoden sind.
 
-### Synchronization
-Zur Synchronization wird ein Mutex verwendet. Bei Operationen auf den Puffer wird dieser gelockt.
 
 ### [Open / Close](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/ch03s05.html)
 Die Prototypen für die Open / Close Operationen sehen wie folgt aus:
@@ -107,8 +103,7 @@ int (*release) (struct inode *, struct file *)
 ```
 #### Open
 
-##### Zugriff auf Gerät-struct
-Um auf das struct zuzugreifen, welches die nötigen Informationen hält, wird folgender code benutzt:
+Um auf das struct zuzugreifen, welches die nötigen Informationen hält, wird folgender Code benutzt:
 ```c
 struct custom_struct *dev; 
 dev = container_of(inode->i_cdev, struct custom_struct, cdev);
@@ -133,6 +128,9 @@ Zum kopieren von Daten aus / in den User-Space werden diese Funktionen verwendet
 ```
 
 ![Write](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/tagoreillycom20070220oreillyimages66866.png)
+
+### Synchronization
+Zur Synchronization werden pro Gerät ein Semaphore und zwei `wait_queue`s verwendet.
 
 ## Aufgaben
 
