@@ -32,6 +32,7 @@ int alloc_chrdev_region(dev_t *dev,
 void cdev_init(struct cdev *cdev, struct file_operations *fops);      
 int cdev_add(struct cdev *dev, dev_t num, unsigned int count);
 void cdev_del(struct cdev *dev);   
+int unregister_chrdev(unsigned int major, const char *name);
 ```
 
 ### Init
@@ -62,7 +63,7 @@ alloziert.
 Am Ende werden die Geräte mit `cdev_add` registiert.
 
 ### Exit
-Das Gerät wird mit der `int unregister_chrdev(unsigned int major, const char *name)` Methode entfernt.
+Das Gerät wird mit der `int unregister_chrdev` Methode entfernt.
 
 Außerdem wird der allozierte Speicher mit `void kfree (const void * objp)` wieder freigegeben. Dabei ist `objp` jener Pointer, der beim
 aufrufen von `kmalloc` zurückgegeben wurde.
