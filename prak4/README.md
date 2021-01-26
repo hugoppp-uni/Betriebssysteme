@@ -20,7 +20,7 @@ sodass diese nicht im Arbeitspeicher gehalten werden müssen. Bemerkenswert ist 
 Pagefile ausgelagert werden kann.
 
 ### Init
-Mit [`kmalloc (size_t size, gfp_t flags)`](http://books.gigatux.nl/mirror/kerneldevelopment/0672327201/ch11lev1sec4.html) wird Speicher für die Puffer alloziert.
+Mit [`void * kmalloc (size_t size, gfp_t flags)`](http://books.gigatux.nl/mirror/kerneldevelopment/0672327201/ch11lev1sec4.html) wird Speicher für die Puffer alloziert.
 
 Mit der Methode
 ```c
@@ -34,9 +34,27 @@ wird eine Major Nummer erstellt und das Gerät registriert. (siehe [kernel.com](
 Dabei wird als `major` parameter 0 übergeben, sodass der Rückgabewert der Major Nummer entspricht.
 
 ### Exit
+Das Gerät wird mit der `int unregister_chrdev(unsigned int major, const char *name)` Methode entfernt.
 
-## File System
-Um schreibende und lesende Funktionen zur Verfügung zu stellen, wird der Header `<linux/fs.h>` benutzt. Das struct file_operations wird wie folgt definiert: 
+Außerdem wird der allozierte Speicher mit `void kfree (const void * objp)` wieder freigegeben. Dabei ist `objp` jener Pointer, der beim
+aufrufen von `kmalloc` zurückgegeben wurde.
+
+## [File System](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/ch03s03.html)
+Um schreibende und lesende Funktionen zur Verfügung zu stellen, wird der Header `<linux/fs.h>` benutzt. 
+
+- file
+    - represents an open file descriptor
+    - has fops pointer
+    - points to n inode
+        - there can be multiple files for one inode
+- inode
+    - represents a file
+    - has `i_rdev` / device number
+    - has fops pointer
+- fops
+    - holds function pointers to the operations to read / write etc.
+
+Das struct file_operations wird wie folgt definiert: 
 ```c 
 static struct file_operations fops =
 {
@@ -46,19 +64,24 @@ static struct file_operations fops =
    .release = dev_release,
 };
 ```
+
 wobei die Werte jeweils Funktionspointer auf die in dem nächsten Abschnitten erklärten Methoden sind.
 
 ### Synchronization
 Zur Synchronization wird ein Mutex verwendet. Bei Operationen auf den Puffer wird dieser gelockt.
 
+### Lesen des Modus
+`MINOR(kdev_t dev)` wird verwendet, um den aktuellen Modus auszulesen. 0 bedeutet Ver-, 1 bedeutet Entschlüsselung.
+
 ### Open
-[`int open(const char *pathname, int flags)`](https://www.man7.org/linux/man-pages/man2/open.2.html)
+`int (*open) (struct inode *, struct file *)`
+Die Minor-Nummer kann mit `MINOR(inode->i_rdev)` ausgelesen werden.
 ### Close
-[`int close(int fd)`](https://www.man7.org/linux/man-pages/man2/close.2.html)
+`int (*release) (struct inode *, struct file *)`
 ### Read
-[`ssize_t read(int fd, void *buf, size_t count)`](https://man7.org/linux/man-pages/man2/read.2.html)
+`ssize_t (*read) (struct file *, char *, size_t, loff_t *)`
 ### Write
-[`ssize_t write(int fd, const void *buf, size_t count)`](https://www.man7.org/linux/man-pages/man2/write.2.html)
+`ssize_t (*write) (struct file *, const char *, size_t, loff_t *)`
 
 
 
