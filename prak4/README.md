@@ -6,32 +6,60 @@ Zum Installieren werden per Bash Skript mit `sudo mknod` zwei Device Nodes erste
 Dafür wird die Major Nummer zuvor mithilfe von `awk` dynamisch ermittelt. Die Minor Nummer beträgt 0 und 1.
 Außerdem wird das Gerät mit `sudo insmod` geladen.
 
+
+
 ## Ver- / Entschlüsselung
-Es werden zwei Methoden geschrieben, als Parameter werden `translate_shift` und das Zeichen selber übergeben.
 Es wird ein globales `char[]` verwendet, welches wie in der Aufgabenstellung definiert wird.
 Zunächst wird die Position des aktuellen Zeichens im Array ausgerechnet, anschließend wird der `translate_shift` addiert, 
 wobei mit dem Modulo Operator gearbeitet wird, sodass nach dem Ende letzten Index des Arrays wieder der erste folgt.
-Die Entschlüsselungsmethoden kann die Verschlüsselungsmethode mit einem negiertem `translate_shift` aufrufen.
+Im Entschlüsselungsmodus wird ein negierter `translate_shift` verwendet, somit ist keine Anpassung der Methode nötig.
 
-## Initialisierung und Exit
-Die Init bzw Exit Methode wird beim Starten bzw. Schließen aufgerufen. Dafür muss `module_init(<functino>)` und `module_exit(<function>)` definiert werden.
+## [Initialisierung und Exit](https://www.oreilly.com/library/view/linux-device-drivers/0596005903/ch03.html#linuxdrive3-CHP-3-SECT-4)
+Die Init bzw Exit Methode wird beim Starten bzw. Schließen aufgerufen.
+Dafür muss `module_init(<functino>)` und `module_exit(<function>)` definiert werden.
 Die macros `__init` und `__exit` können außerdem verwendet werden, um dem Kernel mitzuteilen, dass diese Methoden nicht manuel aufgerufen werden,
 sodass diese nicht im Arbeitspeicher gehalten werden müssen. Bemerkenswert ist hierbei, dass der Arbeitsspeicher im Kernel-Mode nicht in die
 Pagefile ausgelagert werden kann.
 
-### Init
-Mit [`void * kmalloc (size_t size, gfp_t flags)`](http://books.gigatux.nl/mirror/kerneldevelopment/0672327201/ch11lev1sec4.html) wird Speicher für die Puffer alloziert.
-
-Mit der Methode
 ```c
-int __register_chrdev (	unsigned int major,
- 	                    unsigned int baseminor,
-                    	unsigned int count,
- 	                    const char * name,
- 	                    const struct file_operations * fops);
+// Allocating Major version
+int alloc_chrdev_region(dev_t *dev, 
+                        unsigned int firstminor, 
+                        unsigned int count, 
+                        char *name);
+
+// Initilizing the device
+void cdev_init(struct cdev *cdev, struct file_operations *fops);      
+int cdev_add(struct cdev *dev, dev_t num, unsigned int count);
+void cdev_del(struct cdev *dev);   
 ```
-wird eine Major Nummer erstellt und das Gerät registriert. (siehe [kernel.com](https://www.kernel.org/doc/htmldocs/kernel-api/API---register-chrdev.html))
-Dabei wird als `major` parameter 0 übergeben, sodass der Rückgabewert der Major Nummer entspricht.
+
+### Init
+Mit der Methode `alloc_chrdev_region` wird eine Major Nummer erstellt.
+
+Mit `cdev_init` werden zwei cdev Struktur initialisiert, die jeweils in ein `struct translate_dev` eingebettet werden.
+Auf diese Struktur kann später in der open und close Methode mithilfe von `container_of` zugegriffen werden.
+
+```c
+//Geräte-Struct
+struct translate_dev{
+	struct cdev chardevice;
+	unsigned int *buffer;
+    unsigned int buffer_count;
+	unsigned int *p_write;
+	unsigned int *p_read;
+	int shiftcount;
+	wait_queue_head_t waitqueue_read;
+	wait_queue_head_t waitqueue_write;
+	struct semaphore my_semaphore;
+};
+```
+Beim Gerät mit der Minor nummer 1 wird `translate_shift` auf den negative Wert gesetzt.
+Das Buffer der Geräte wird jeweils mit 
+[`void * kmalloc (size_t size, gfp_t flags)`](http://books.gigatux.nl/mirror/kerneldevelopment/0672327201/ch11lev1sec4.html) 
+alloziert.
+
+Am Ende werden die Geräte mit `cdev_add` registiert.
 
 ### Exit
 Das Gerät wird mit der `int unregister_chrdev(unsigned int major, const char *name)` Methode entfernt.
@@ -70,9 +98,6 @@ wobei die Werte jeweils Funktionspointer auf die in dem nächsten Abschnitten er
 ### Synchronization
 Zur Synchronization wird ein Mutex verwendet. Bei Operationen auf den Puffer wird dieser gelockt.
 
-### Lesen des Modus
-`MINOR(kdev_t dev)` wird verwendet, um den aktuellen Modus auszulesen. 0 bedeutet Ver-, 1 bedeutet Entschlüsselung.
-
 ### [Open / Close](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/ch03s05.html)
 Die Prototypen für die Open / Close Operationen sehen wie folgt aus:
 ```c
@@ -80,8 +105,17 @@ int (*open) (struct inode *, struct file *)
 int (*release) (struct inode *, struct file *)
 ```
 #### Open
-Die Minor-Nummer wird mit `MINOR(inode->i_rdev)` ausgelesen. Anschließend wird der `file->i_fops` pointer auf das entsprechende
-struct gesetzt.
+
+##### Zugriff auf Gerät-struct
+Um auf das struct zuzugreifen, welches die nötigen Informationen hält, wird folgender code benutzt:
+```c
+struct custom_struct *dev; 
+dev = container_of(inode->i_cdev, struct custom_struct, cdev);
+filp->private_data = dev; /* for quick access in read and write methods */
+```
+filp ist dabei das von der open Methode übergebene `struct file`. 
+Dessen `private_data` Feld ermöglicht Zugriff auf unser Geräte struct
+in den read und write Methoden.
 
 ### [Read / Write](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/ch03s08.html)
 Die Prototypen für die Read / Write Operationen sehen wie folgt aus:
@@ -89,7 +123,7 @@ Die Prototypen für die Read / Write Operationen sehen wie folgt aus:
 ssize_t (*read) (struct file *, char *, size_t, loff_t *)
 ssize_t (*write) (struct file *, const char *, size_t, loff_t *)
 ```
-der `char*` ist dabei jeweils ein pointer auf ein buffer im User-Space, der dritte parameter ist die Größe dieses Buffers.
+der `char*` ist dabei jeweils ein Pointer auf ein buffer im User-Space, der dritte parameter ist die Größe dieses Buffers.
 
 Zum kopieren von Daten aus / in den User-Space werden diese Funktionen verwendet:
 ```c
