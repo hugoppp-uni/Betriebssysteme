@@ -1,5 +1,4 @@
-# Entwruf
-
+# Entwurf
 
 ## [Installation](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/ch03s02.html)
 Zum Installieren werden per Bash Skript mit `sudo mknod` zwei Device Nodes erstellt.
@@ -127,7 +126,17 @@ Zum kopieren von Daten aus / in den User-Space werden diese Funktionen verwendet
  unsigned long copy_to_user(void *to, const void *from, unsigned long count);
 ```
 
-![Write](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/tagoreillycom20070220oreillyimages66866.png)
+#### Read
+Beim Lesen werden die angeforderte Anahl an Zeichen mithilfe von `copy_to_user` aus dem Buffer 
+an die entsprechende Adresse im User-Space geschrieben.
+`translate_dev->p_read` wird um die Anzahl an gelesener Zeichen inkrementiert.
+
+![Read](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/tagoreillycom20070220oreillyimages66866.png)
+
+#### Write
+Beim Schreiben werden die übergebenen Charactere mithilfe von `copy_from_user` in das Buffer geschrieben,
+nachdem sie ver / entschlüsselt wurden.
+`translate_dev->p_write` wird um die Anzahl an gelesener Zeichen inkrementiert.
 
 ### Synchronization
 Zur Synchronization werden pro Gerät ein Semaphore und zwei `wait_queue`s verwendet.
