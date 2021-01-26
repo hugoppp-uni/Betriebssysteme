@@ -49,6 +49,8 @@ struct translate_dev{
 	unsigned int *p_write;
 	unsigned int *p_read;
 	int shiftcount;
+    char is_open_read;
+    char is_open_write;
 	wait_queue_head_t waitqueue_read;
 	wait_queue_head_t waitqueue_write;
 	struct semaphore my_semaphore;
@@ -78,6 +80,8 @@ Um schreibende und lesende Funktionen zur Verfügung zu stellen, wird der Header
     - Hat einen `file_operations` pointer
     - Zeigt auf eine `inode`
         - Es kann mehrere `file`s für eine `inode` geben
+    - Hat `mode_t f_mode`, welcher eines oder beide der folgenden Bits enthalten kann:
+        - `FMODE_READ`, `FMODE_WRITE`
 - [file_operations](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/ch03s03.html)
     - Hält Funktionspointer, die Operationen wie Lesen / Schreiben definieren.
 
@@ -101,7 +105,6 @@ int (*open) (struct inode *, struct file *)
 int (*release) (struct inode *, struct file *)
 ```
 #### Open
-
 Um auf das struct zuzugreifen, welches die nötigen Informationen hält, wird folgender Code benutzt:
 ```c
 struct custom_struct *dev; 
@@ -111,6 +114,11 @@ filp->private_data = dev; /* for quick access in read and write methods */
 filp ist dabei das von der open Methode übergebene `struct file`. 
 Dessen `private_data` Feld ermöglicht Zugriff auf unser Geräte struct
 in den read und write Methoden.
+
+Über `file->f_mode` wird der Modus ausgelesen.
+Falls das Gerät bereits im angefordertem Modus verwendet wird, was mithilfe 
+`translate_dev->is_open_read` und `translate_dev->is_open_write` abgefragt wird,
+gibt die Methode `EBUSY` zurück. Andernfalls werden die Flags in dem struct entsprechended gesetzt.
 
 ### [Read / Write](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/ch03s08.html)
 Die Prototypen für die Read / Write Operationen sehen wie folgt aus:
