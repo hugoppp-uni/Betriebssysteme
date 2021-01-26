@@ -42,7 +42,7 @@ aufrufen von `kmalloc` zurückgegeben wurde.
 ## [File System](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/ch03s03.html)
 Um schreibende und lesende Funktionen zur Verfügung zu stellen, wird der Header `<linux/fs.h>` benutzt. 
 
-- file
+- [file](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/ch03s04.html)
     - represents an open file descriptor
     - has fops pointer
     - points to n inode
@@ -50,8 +50,8 @@ Um schreibende und lesende Funktionen zur Verfügung zu stellen, wird der Header
 - inode
     - represents a file
     - has `i_rdev` / device number
-    - has fops pointer
-- fops
+    - has fops pointer ?
+- [fops](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/ch03s03.html)
     - holds function pointers to the operations to read / write etc.
 
 Das struct file_operations wird wie folgt definiert: 
@@ -73,17 +73,31 @@ Zur Synchronization wird ein Mutex verwendet. Bei Operationen auf den Puffer wir
 ### Lesen des Modus
 `MINOR(kdev_t dev)` wird verwendet, um den aktuellen Modus auszulesen. 0 bedeutet Ver-, 1 bedeutet Entschlüsselung.
 
-### Open
-`int (*open) (struct inode *, struct file *)`
-Die Minor-Nummer kann mit `MINOR(inode->i_rdev)` ausgelesen werden.
-### Close
-`int (*release) (struct inode *, struct file *)`
-### Read
-`ssize_t (*read) (struct file *, char *, size_t, loff_t *)`
-### Write
-`ssize_t (*write) (struct file *, const char *, size_t, loff_t *)`
+### [Open / Close](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/ch03s05.html)
+Die Prototypen für die Open / Close Operationen sehen wie folgt aus:
+```c
+int (*open) (struct inode *, struct file *)
+int (*release) (struct inode *, struct file *)
+```
+#### Open
+Die Minor-Nummer wird mit `MINOR(inode->i_rdev)` ausgelesen. Anschließend wird der `file->i_fops` pointer auf das entsprechende
+struct gesetzt.
 
+### [Read / Write](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/ch03s08.html)
+Die Prototypen für die Read / Write Operationen sehen wie folgt aus:
+```c
+ssize_t (*read) (struct file *, char *, size_t, loff_t *)
+ssize_t (*write) (struct file *, const char *, size_t, loff_t *)
+```
+der `char*` ist dabei jeweils ein pointer auf ein buffer im User-Space, der dritte parameter ist die Größe dieses Buffers.
 
+Zum kopieren von Daten aus / in den User-Space werden diese Funktionen verwendet:
+```c
+ unsigned long copy_from_user(void *to, const void *from, unsigned long count);
+ unsigned long copy_to_user(void *to, const void *from, unsigned long count);
+```
+
+![Write](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/tagoreillycom20070220oreillyimages66866.png)
 
 ## Aufgaben
 
