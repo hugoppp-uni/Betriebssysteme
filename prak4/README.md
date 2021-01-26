@@ -122,7 +122,7 @@ gibt die Methode `EBUSY` zurück. Andernfalls werden die Flags in dem struct ent
 Dieser Vorgang ist ein kritischer Bereich, da bei gleichzeitiger Ausführung möglicherweise mehrenren 
 Auferufern Zugriff gewährt wird. Somit wird zuvor der Semaphore mit `down_interruptible` gelockt, anschließend
 mit `up` wieder freigegeben
-(Siehe Abschnitt [Synchronization](https://git.haw-hamburg.de/acs521/bsp/-/edit/master/prak4/README.md#synchronization)).
+(Siehe Abschnitt [Synchronization](#synchronization)).
 
 ### [Read / Write](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/ch03s08.html)
 Die Prototypen für die Read / Write Operationen sehen wie folgt aus:
