@@ -3,6 +3,8 @@
 1. Was ist bei der Implementierung und beim Test von Kernelmodulen anders als bei den Programmen, die bei den ersten Aufgaben zu erstellen waren? 
     - Kernel mode instead of user mode
     - Can't link against user mode headers
+    - A module is linked only to the kernel, and the only functions it can call are theones exported by the kernel,
+    there are no libraries to link to.
     - Creation of a module [23]
     - Stack size is very limited [22]
     - Code needs to be recompiled for every kernel version [26]
@@ -11,7 +13,7 @@
     - Error codes => negative integer return value as defined in <linux/errno.h> [33]
     - Normal debbugger does not work [38]
     - System can easily be corrupted -> eg crash [38]
-    - Kernel modules can not be swapped out of ram [38]
+    - Kernel modules can not be swapped out of ram [38] ???
     - http://derekmolloy.ie/writing-a-linux-kernel-module-part-1-introduction#The_Module_Code
         - do not execute sequentially
         - do not have automatic cleanup
@@ -22,6 +24,7 @@
     -https://www.oreilly.com/openbook/linuxdrive3/book/ch03.pdf
         - The major number identifies the driver associated with the device
         - The minor number is used by the kernel to determine exactly which device is being referred to
+        - Before a user-space  program can access one of those device  numbers, our driver needs to connect them to its internal functions  that  implement  the  device’s  operations
 3. Wie führen Sie Tests durch? 
     - http://derekmolloy.ie/writing-a-linux-kernel-module-part-1-introduction#Testing_the_LKM
 4. Was ist im Programmcode zu beachten?
