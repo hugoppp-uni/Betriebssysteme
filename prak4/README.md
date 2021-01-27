@@ -177,14 +177,14 @@ init_waitqueue_head(&translate_dev->wait_queue_write);
 ```
 Das Blocken kann mit der methode realisert werden:
 
-wait_event_interruptible(queue, condition);
+`wait_event_interruptible(queue, condition);`
 
 Sobald im Buffer Elemente auftauchen, kann der erste Leser aus der Queue auf diese 
 Daten zugreifen. Für das Schreiben gilt das analog:
 
-void wake_up_interruptible(wait_queue_head_t *queue);
+`void wake_up_interruptible(wait_queue_head_t *queue);`
 
-## Aufgaben
+## Notizen
 
 1. Was ist bei der Implementierung und beim Test von Kernelmodulen anders als bei den Programmen, die bei den ersten Aufgaben zu erstellen waren? 
     - Kernel mode instead of user mode
@@ -200,21 +200,11 @@ void wake_up_interruptible(wait_queue_head_t *queue);
     - Error codes => negative integer return value as defined in <linux/errno.h> [33]
     - Normal debbugger does not work [38]
     - System can easily be corrupted -> eg crash [38]
-<<<<<<< HEAD
     - Kernel modules can not be swapped out of ram [38] ???
-    - http://derekmolloy.ie/writing-a-linux-kernel-module-part-1-introduction#The_Module_Code
-        - do not execute sequentially
-        - do not have automatic cleanup
-        - do not have printf() functions 
-        - have a higher level of execution privilege 
-        - do not have floating-point support 
-=======
-        - Testing should be done in user space first
-    - Kernel modules can not be swapped out of ram [38]
+    - Testing should be done in user space first
     - No floating number support
     - Manual cleaup is requierd
     - No sequential execution
->>>>>>> 20449a97785d2f25f2639ecdabbaa31af27470ea
 2. Was sind Major- und Minor-Nummern und wo würden die in einer Implementierung auftauchen?\
      - Major
         - Identifies a device -> one major number per device
