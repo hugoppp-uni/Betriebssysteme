@@ -119,8 +119,8 @@ in den read und write Methoden.
 Falls das Gerät bereits im angefordertem Modus verwendet wird, was mithilfe 
 `translate_dev->is_open_read` und `translate_dev->is_open_write` abgefragt wird,
 gibt die Methode `EBUSY` zurück. Andernfalls werden die Flags in dem struct entsprechended gesetzt.
-Dieser Vorgang ist ein kritischer Bereich, da bei gleichzeitiger Ausführung möglicherweise mehrenren 
-Auferufern Zugriff gewährt wird. Somit wird zuvor der Semaphore mit `down_interruptible` gelockt, anschließend
+Dieser Vorgang ist ein kritischer Bereich, da bei gleichzeitiger Ausführung möglicherweise mehreren 
+Aufrufern Zugriff gewährt wird. Somit wird zuvor der Semaphore mit `down_interruptible` gelockt, anschließend
 mit `up` wieder freigegeben
 (Siehe Abschnitt [Synchronization](#synchronization)).
 
@@ -141,14 +141,14 @@ Zum kopieren von Daten aus / in den User-Space werden diese Funktionen verwendet
 #### Read
 Beim Lesen werden die angeforderte Anahl an Zeichen mithilfe von `copy_to_user` aus dem Buffer 
 an die entsprechende Adresse im User-Space geschrieben.
-`translate_dev->p_read` wird um die Anzahl an gelesener Zeichen inkrementiert.
+`translate_dev->p_read` wird um die Anzahl an gelesener Zeichen inkrementiert, `translate_dev->buffer_count` dekrementiert.
 
 ![Read](https://www.oreilly.com/library/view/linux-device-drivers/0596000081/tagoreillycom20070220oreillyimages66866.png)
 
 #### Write
 Beim Schreiben werden die übergebenen Charactere mithilfe von `copy_from_user` in das Buffer geschrieben,
-nachdem sie ver / entschlüsselt wurden.
-`translate_dev->p_write` wird um die Anzahl an gelesener Zeichen inkrementiert.
+nachdem sie ver- / entschlüsselt wurden.
+`translate_dev->p_write` und `translate_dev->buffer_count` werden um die Anzahl an gelesener Zeichen inkrementiert.
 
 ### [Synchronization](https://www.oreilly.com/library/view/linux-device-drivers/0596005903/ch05.html)
 Zur Synchronization werden pro Gerät ein Semaphore im Mutex-Modus und zwei `wait_queue`s verwendet.
