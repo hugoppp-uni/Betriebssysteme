@@ -170,6 +170,7 @@ void up(struct semaphore *sem);
 Alle auf das Lesen wartenden Prozesse werden in einer Queue geblockt, wenn im Buffer keine Elemente mehr vorhanden sind `translate_dev->size == 0`, 
 alle auf das Schreiben wartenden Prozesse in einer anderen Queue, wenn der Buffer voll ist.
 Die Wait Queue wird folgendermaßen initialisiert:
+
 ```c
 init_waitqueue_head(&translate_dev->wait_queue_read);
 init_waitqueue_head(&translate_dev->wait_queue_write);
