@@ -15,7 +15,7 @@ Im Entschlüsselungsmodus wird ein negierter `translate_shift` verwendet, somit 
 
 ## [Initialisierung und Exit](https://www.oreilly.com/library/view/linux-device-drivers/0596005903/ch03.html#linuxdrive3-CHP-3-SECT-4)
 Die Init bzw Exit Methode wird beim Starten bzw. Schließen aufgerufen.
-Dafür muss `module_init(<functino>)` und `module_exit(<function>)` definiert werden.
+Dafür muss `module_init(<function>)` und `module_exit(<function>)` definiert werden.
 Die macros `__init` und `__exit` können außerdem verwendet werden, um dem Kernel mitzuteilen, dass diese Methoden nicht manuel aufgerufen werden,
 sodass diese nicht im Arbeitspeicher gehalten werden müssen. Bemerkenswert ist hierbei, dass der Arbeitsspeicher im Kernel-Mode nicht in die
 Pagefile ausgelagert werden kann.
@@ -59,9 +59,12 @@ struct translate_dev{
 Beim Gerät mit der Minor nummer 1 wird `translate_shift` auf den negative Wert gesetzt.
 Das Buffer der Geräte wird jeweils mit 
 [`void * kmalloc (size_t size, gfp_t flags)`](http://books.gigatux.nl/mirror/kerneldevelopment/0672327201/ch11lev1sec4.html) 
-alloziert.
+alloziert. 
 
 Am Ende werden die Geräte mit `cdev_add` registiert.
+
+Wird die Speicherallokation oder Registrierung aus irgandwelchen Gründen fehlschlagen, so wird eine etsprechende Aktion ausgefüht(z.B. wird das Gerät unregistriert)
+und passende error aus `<linux/errno.h>` zurückgegeben. 
 
 ### Exit
 Das Gerät wird mit der `int unregister_chrdev` Methode entfernt.
@@ -164,12 +167,21 @@ void up(struct semaphore *sem);
 ```
 
 #### Wait Queue
+Alle auf das Lesen wartenden Prozesse werden in einer Queue geblockt, wenn im Buffer keine Elemente mehr vorhanden sind `translate_dev->size == 0`, 
+alle auf das Schreiben wartenden Prozesse in einer anderen Queue, wenn der Buffer voll ist.
+Die Wait Queue wird folgendermaßen initialisiert:
 ```c
 init_waitqueue_head(&translate_dev->wait_queue_read);
 init_waitqueue_head(&translate_dev->wait_queue_write);
 ```
-Das Lesen wird blockiert, wenn im Buffer keine Elemente mehr vorhanden sind `translate_dev->size == 0`, 
-das Schreiben, wenn der Buffer voll ist.
+Das Blocken kann mit der methode realisert werden:
+
+wait_event_interruptible(queue, condition);
+
+Sobald im Buffer Elemente auftauchen, kann der erste Leser aus der Queue auf diese 
+Daten zugreifen. Für das Schreiben gilt das analog:
+
+void wake_up_interruptible(wait_queue_head_t *queue);
 
 ## Aufgaben
 
