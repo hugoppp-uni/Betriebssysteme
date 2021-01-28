@@ -34,6 +34,21 @@ void cdev_del(struct cdev *dev);
 int unregister_chrdev(unsigned int major, const char *name);
 ```
 
+## [Modulparameter](https://www.oreilly.com/library/view/linux-device-drivers/0596005903/ch02.html#linuxdrive3-CHP-2-SECT-8)
+Modulparameter werden verwendet, um die Buffergröße und die Anzahl an Zeichen, mit denen verschlüsselt werden soll, festzulegen.
+
+Diese können wie folgt definiert werden:
+```c
+static char *whom = "world";
+static int howmany = 1;
+module_param(howmany, int, S_IRUGO);
+module_param(whom, charp, S_IRUGO);
+```
+Beim Laden des Modules werden diese dann mit Werten gefüllt:
+```bash
+insmod hellop howmany=10 whom="Mom"
+```
+
 ### Init
 Mit der Methode `alloc_chrdev_region` wird eine Major Nummer erstellt.
 
